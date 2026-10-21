@@ -63,31 +63,30 @@ class AuthManager: ObservableObject {
     // MARK: - Session Persistence
 
     private func loadSession() async {
-        do {
-            if let accountData = try? keychain.getData(forKey: "auth_account"),
-               let account = try? JSONDecoder().decode(
-                   Account.self,
-                   from: accountData
-               ) {
-                currentAccount = account
-                isAuthenticated = true
-            }
+        if let accountData = try? keychain.getData(forKey: "auth_account"),
+           let account = try? JSONDecoder().decode(
+               Account.self,
+               from: accountData
+           ) {
+            currentAccount = account
+            isAuthenticated = true
+        }
 
-            if let channelData = try? keychain.getData(forKey: "auth_channel"),
-               let channel = try? JSONDecoder().decode(
-                   AccountChannel.self,
-                   from: channelData
-               ) {
-                currentChannel = channel
-            }
+        if let channelData = try? keychain.getData(forKey: "auth_channel"),
+           let channel = try? JSONDecoder().decode(
+               AccountChannel.self,
+               from: channelData
+           ) {
+            currentChannel = channel
+        }
 
-            if let channelsData = try? keychain.getData(forKey: "auth_channels"),
-               let channels = try? JSONDecoder().decode(
-                   [AccountChannel].self,
-                   from: channelsData
-               ) {
-                availableChannels = channels
-            }
+        if let channelsData = try? keychain.getData(forKey: "auth_channels"),
+           let channels = try? JSONDecoder().decode(
+               [AccountChannel].self,
+               from: channelsData
+           ) {
+            availableChannels = channels
+        }
     }
 
     private func saveSession() async {

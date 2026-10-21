@@ -1,0 +1,32 @@
+import SwiftUI
+import SwiftData
+
+@main
+struct BitChordApp: App {
+    @StateObject private var appState = AppState()
+    @StateObject private var playbackManager = PlaybackManager()
+    @StateObject private var libraryManager = LibraryManager()
+    @StateObject private var settingsManager = SettingsManager()
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .environmentObject(appState)
+                .environmentObject(playbackManager)
+                .environmentObject(libraryManager)
+                .environmentObject(settingsManager)
+                .onAppear {
+                    setupApp()
+                }
+        }
+        .modelContainer(SharedDataContainer)
+    }
+
+    private func setupApp() {
+        Task {
+            await AuthManager.shared.initialize()
+            await YTMusicRepository.shared.initialize()
+            await AudioSessionManager.shared.configure()
+        }
+    }
+}

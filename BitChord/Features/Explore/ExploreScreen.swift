@@ -205,9 +205,7 @@ struct BrowseItemCard: View {
                     videoId: videoId,
                     title: item.title,
                     artist: item.subtitle,
-                    album: nil,
-                    duration: nil,
-                    artworkUrl: item.thumbnailUrl,
+                    thumbnailUrl: item.thumbnailUrl,
                     queueTier: .context
                 )
                 playbackManager.play(song)

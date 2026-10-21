@@ -24,7 +24,7 @@ struct BitChordApp: App {
         Task {
             await AuthManager.shared.initialize()
             await YTMusicRepository.shared.initialize()
-            await AudioSessionManager.shared.configure()
         }
+        AudioSessionManager.shared.configure()
     }
 }

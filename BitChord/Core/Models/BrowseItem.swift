@@ -47,9 +47,7 @@ struct BrowseItem: Identifiable, Codable, Hashable {
             videoId: videoId,
             title: title,
             artist: subtitle,
-            album: nil,
-            duration: nil,
-            artworkUrl: thumbnailUrl,
+            thumbnailUrl: thumbnailUrl,
             queueTier: .context
         )
     }

@@ -48,7 +48,7 @@ struct YouTubeLoginView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Button("Retry") {
-                            errorMessage = nil
+                            errorMessage = ""
                             isLoading = true
                         }
                     }
@@ -126,7 +126,7 @@ struct WebView: UIViewRepresentable {
         let dataStore = webView.configuration.websiteDataStore
         dataStore.fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
             records.forEach { record in
-                dataStore.removeData(ofTypes: [record.dataType], for: [record])
+                dataStore.removeData(ofTypes: [record.recordType], for: [record])
             }
         }
     }

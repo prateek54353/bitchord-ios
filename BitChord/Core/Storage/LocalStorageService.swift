@@ -13,75 +13,125 @@ class LocalStorageService {
         documentsURL.appendingPathComponent(filename)
     }
 
+    // MARK: - Generic Save/Load
+
+    private func save<T: Encodable>(_ data: T, to filename: String) async throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let encoded = try encoder.encode(data)
+        try encoded.write(to: fileURL(for: filename))
+    }
+
+    private func load<T: Decodable>(_ type: T.Type, from filename: String) async throws -> T {
+        let data = try Data(contentsOf: fileURL(for: filename))
+        let decoder = JSONDecoder()
+        return try decoder.decode(type, from: data)
+    }
+
+    private func loadOrDefault<T: Decodable>(_ type: T.Type, from filename: String) async -> T {
+        do {
+            return try await load(type, from: filename)
+        } catch {
+            // File doesn't exist or is corrupted, return default value
+            if type == [Song].self {
+                return [] as! T
+            } else if type == [BrowseItem].self {
+                return [] as! T
+            } else if type == [UserPlaylist].self {
+                return [] as! T
+            }
+            fatalError("Unsupported type")
+        }
+    }
+
     // MARK: - Saved Tracks
 
     func saveSavedTracks(_ tracks: [Song]) async throws {
-        let data = try JSONEncoder().encode(tracks)
-        try data.write(to: fileURL(for: "saved_tracks.json"))
+        try await save(tracks, to: "saved_tracks.json")
     }
 
     func loadSavedTracks() async throws -> [Song] {
-        let data = try Data(contentsOf: fileURL(for: "saved_tracks.json"))
-        return try JSONDecoder().decode([Song].self, from: data)
+        return try await load([Song].self, from: "saved_tracks.json")
     }
 
     // MARK: - Saved Albums
 
     func saveSavedAlbums(_ albums: [BrowseItem]) async throws {
-        let data = try JSONEncoder().encode(albums)
-        try data.write(to: fileURL(for: "saved_albums.json"))
+        try await save(albums, to: "saved_albums.json")
     }
 
     func loadSavedAlbums() async throws -> [BrowseItem] {
-        let data = try Data(contentsOf: fileURL(for: "saved_albums.json"))
-        return try JSONDecoder().decode([BrowseItem].self, from: data)
+        return try await load([BrowseItem].self, from: "saved_albums.json")
     }
 
     // MARK: - Saved Artists
 
     func saveSavedArtists(_ artists: [BrowseItem]) async throws {
-        let data = try JSONEncoder().encode(artists)
-        try data.write(to: fileURL(for: "saved_artists.json"))
+        try await save(artists, to: "saved_artists.json")
     }
 
     func loadSavedArtists() async throws -> [BrowseItem] {
-        let data = try Data(contentsOf: fileURL(for: "saved_artists.json"))
-        return try JSONDecoder().decode([BrowseItem].self, from: data)
+        return try await load([BrowseItem].self, from: "saved_artists.json")
     }
 
     // MARK: - Playlists
 
     func savePlaylists(_ playlists: [UserPlaylist]) async throws {
-        let data = try JSONEncoder().encode(playlists)
-        try data.write(to: fileURL(for: "playlists.json"))
+        try await save(playlists, to: "playlists.json")
     }
 
     func loadPlaylists() async throws -> [UserPlaylist] {
-        let data = try Data(contentsOf: fileURL(for: "playlists.json"))
-        return try JSONDecoder().decode([UserPlaylist].self, from: data)
+        return try await load([UserPlaylist].self, from: "playlists.json")
     }
 
     // MARK: - Recently Played
 
     func saveRecentlyPlayed(_ tracks: [Song]) async throws {
-        let data = try JSONEncoder().encode(tracks)
-        try data.write(to: fileURL(for: "recently_played.json"))
+        try await save(tracks, to: "recently_played.json")
     }
 
     func loadRecentlyPlayed() async throws -> [Song] {
-        let data = try Data(contentsOf: fileURL(for: "recently_played.json"))
-        return try JSONDecoder().decode([Song].self, from: data)
+        return try await load([Song].self, from: "recently_played.json")
     }
 
     // MARK: - Downloads
 
     func saveDownloads(_ tracks: [Song]) async throws {
-        let data = try JSONEncoder().encode(tracks)
-        try data.write(to: fileURL(for: "downloads.json"))
+        try await save(tracks, to: "downloads.json")
     }
 
     func loadDownloads() async throws -> [Song] {
-        let data = try Data(contentsOf: fileURL(for: "downloads.json"))
-        return try JSONDecoder().decode([Song].self, from: data)
+        return try await load([Song].self, from: "downloads.json")
+    }
+
+    // MARK: - Settings
+
+    func saveSettings(_ settings: AppSettings) async throws {
+        try await save(settings, to: "settings.json")
+    }
+
+    func loadSettings() async throws -> AppSettings {
+        return try await load(AppSettings.self, from: "settings.json")
+    }
+
+    // MARK: - Clear All Data
+
+    func clearAllData() async throws {
+        let files = [
+            "saved_tracks.json",
+            "saved_albums.json",
+            "saved_artists.json",
+            "playlists.json",
+            "recently_played.json",
+            "downloads.json",
+            "settings.json"
+        ]
+
+        for file in files {
+            let url = fileURL(for: file)
+            if fileManager.fileExists(atPath: url.path) {
+                try fileManager.removeItem(at: url)
+            }
+        }
     }
 }

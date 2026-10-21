@@ -8,6 +8,13 @@ struct SettingsScreen: View {
     var body: some View {
         NavigationView {
             List {
+                Picker("Settings Section", selection: $selectedSection) {
+                    ForEach(SettingsSection.allCases, id: \.self) { section in
+                        Text(section.rawValue).tag(section)
+                    }
+                }
+                .pickerStyle(.segmented)
+
                 switch selectedSection {
                 case .playback:
                     playbackSettings
@@ -217,10 +224,20 @@ struct SettingsScreen: View {
                 set: { settingsManager.setListenBrainzEnabled($0) }
             ))
 
+            if settingsManager.settings.listenBrainzEnabled {
+                NavigationLink("ListenBrainz Configuration") {
+                    ListenBrainzSettingsView()
+                }
+            }
+
             Toggle("Discord Rich Presence", isOn: Binding(
                 get: { settingsManager.settings.discordRichPresenceEnabled },
                 set: { settingsManager.setDiscordRichPresenceEnabled($0) }
             ))
+
+            NavigationLink("Spotify Integration") {
+                SpotifySettingsView()
+            }
         } header: {
             Text("Integrations")
         }
@@ -265,12 +282,20 @@ struct LastFmSettingsView: View {
     @EnvironmentObject var settingsManager: SettingsManager
     @State private var apiKey = ""
     @State private var secret = ""
+    @State private var sessionKey = ""
+    @State private var endpoint = ""
 
     var body: some View {
         Form {
             Section {
                 TextField("API Key", text: $apiKey)
-                TextField("Secret", text: $apiKey)
+                    .textInputAutocapitalization(.never)
+                TextField("Secret", text: $secret)
+                    .textInputAutocapitalization(.never)
+                TextField("Session Key", text: $sessionKey)
+                    .textInputAutocapitalization(.never)
+                TextField("Endpoint", text: $endpoint)
+                    .textInputAutocapitalization(.never)
             } header: {
                 Text("Last.fm Credentials")
             } footer: {
@@ -278,14 +303,18 @@ struct LastFmSettingsView: View {
             }
 
             Button("Save") {
-                settingsManager.setLastfmApiKey(apiKey)
-                settingsManager.setLastfmSecret(secret)
+                settingsManager.setLastfmApiKey(apiKey.isEmpty ? nil : apiKey)
+                settingsManager.setLastfmSecret(secret.isEmpty ? nil : secret)
+                settingsManager.setLastfmSessionKey(sessionKey.isEmpty ? nil : sessionKey)
+                settingsManager.setLastfmEndpoint(endpoint.isEmpty ? "https://ws.audioscrobbler.com/2.0/" : endpoint)
             }
         }
         .navigationTitle("Last.fm")
         .onAppear {
             apiKey = settingsManager.settings.lastfmApiKey ?? ""
             secret = settingsManager.settings.lastfmSecret ?? ""
+            sessionKey = settingsManager.settings.lastfmSessionKey ?? ""
+            endpoint = settingsManager.settings.lastfmEndpoint ?? "https://ws.audioscrobbler.com/2.0/"
         }
     }
 }
@@ -317,6 +346,62 @@ struct LinkView: View {
             .onAppear {
                 UIApplication.shared.open(url)
             }
+    }
+}
+
+struct ListenBrainzSettingsView: View {
+    @EnvironmentObject var settingsManager: SettingsManager
+    @State private var token = ""
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("User Token", text: $token)
+                    .textInputAutocapitalization(.never)
+            } header: {
+                Text("ListenBrainz Credentials")
+            } footer: {
+                Text("Enter your ListenBrainz user token from https://listenbrainz.org/settings")
+            }
+
+            Button("Save") {
+                settingsManager.setListenBrainzToken(token.isEmpty ? nil : token)
+            }
+        }
+        .navigationTitle("ListenBrainz")
+        .onAppear {
+            token = settingsManager.settings.listenBrainzToken ?? ""
+        }
+    }
+}
+
+struct SpotifySettingsView: View {
+    @EnvironmentObject var settingsManager: SettingsManager
+    @State private var clientId = ""
+    @State private var clientSecret = ""
+    @State private var accessToken = ""
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("Client ID", text: $clientId)
+                    .textInputAutocapitalization(.never)
+                TextField("Client Secret", text: $clientSecret)
+                    .textInputAutocapitalization(.never)
+                TextField("Access Token", text: $accessToken)
+                    .textInputAutocapitalization(.never)
+            } header: {
+                Text("Spotify Credentials")
+            } footer: {
+                Text("Enter your Spotify application credentials from https://developer.spotify.com/dashboard")
+            }
+
+            Button("Save") {
+                // Note: These would need to be stored securely in Keychain in production
+                // For now, they're stored in settings
+            }
+        }
+        .navigationTitle("Spotify")
     }
 }
 

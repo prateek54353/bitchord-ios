@@ -61,28 +61,74 @@ BitChord/
 
 ### Networking
 - **HttpClient**: Async/await-based HTTP client
-- **YTMusicRepository**: YouTube Music API client (structure in place)
+- **InnerTubeClient**: YouTube Music InnerTube API client with SAPISIDHASH auth
+- **YTMusicRepository**: Complete YouTube Music API implementation
+- **StreamResolver**: Multi-client stream URL resolution
 
 ### Audio
-- **PlaybackManager**: AVPlayer wrapper with queue, seek, controls
+- **PlaybackManager**: AVPlayer wrapper with queue, seek, controls, lock screen
 - **AudioSessionManager**: Remote controls, lock screen metadata
 
 ### Design System
 - **BitChordTheme**: Centralized colors, typography, spacing, corner radius
-- **Components**: MiniPlayer, NowPlayingSheet, reusable cards
+- **Components**: MiniPlayer, NowPlayingSheet, QueueSheet, reusable cards
 
-## Implemented Features
+## Implementation Status
 
-### Core Infrastructure ✅
+### Core Infrastructure ✅ COMPLETE
 - Complete project structure with Xcode project file
 - MVVM architecture with clear separation
 - Data models matching Android reference
 - State management with @Published properties
-- Persistence layer (Keychain + LocalStorage + SwiftData)
+- Persistence layer (Keychain + LocalStorage)
 - HTTP client for network requests
 - Audio session configuration
 
-### UI Implementation ✅
+### YouTube Music Integration ✅ COMPLETE
+- **InnerTubeClient**: Full InnerTube protocol implementation
+  - HTTP requests with proper headers
+  - Session management with visitor data
+  - SAPISIDHASH authentication
+  - Client catalog (VISIONOS, IOS, ANDROID_MUSIC, ANDROID_VR, WEB_REMIX)
+  - PoToken support structure
+- **YTMusicRepository**: Complete API implementation
+  - Home feed with pagination
+  - Search with filters (All, Songs, Videos, Albums, Artists, Playlists)
+  - Browse albums, artists, playlists
+  - Library management (liked music, playlists)
+  - Mood and genre categories
+  - History and recents
+  - Quick picks
+  - Audio/video version resolution
+- **InnertubeParser**: JSON response parsing
+  - Home feed parsing (shelves, carousels)
+  - Search result parsing (tracks, albums, artists)
+  - Browse page parsing
+  - Continuation token extraction
+  - Artist and album page parsing
+- **StreamResolver**: Multi-client stream resolution
+  - Client fallback strategy (VISIONOS → IOS → ANDROID_MUSIC → ANDROID_VR)
+  - Format selection (audio quality, bitrate)
+  - Caching system for resolved URLs
+  - Unplayable track detection
+  - Loudness normalization support
+
+### Audio Playback ✅ COMPLETE
+- **PlaybackManager**: Full AVPlayer implementation
+  - Queue management with tier system (USER_QUEUE, CONTEXT, AUTOPLAY)
+  - Play/pause, next/previous, seek controls
+  - Shuffle and repeat modes (off, all, one)
+  - Playback rate and volume control
+  - Queue drag and drop
+  - Auto-skip on errors
+  - Time observers for progress tracking
+- **AudioSessionManager**: Lock screen and remote controls
+  - MPNowPlayingInfoCenter integration
+  - Remote command center (play, pause, skip, seek)
+  - Now playing artwork display
+  - Metadata updates
+
+### UI Implementation ✅ COMPLETE
 - Tab-based navigation (Home, Explore, Library, Search)
 - Home screen with recents and shelves
 - Explore screen with mood/genre categories
@@ -91,19 +137,65 @@ BitChord/
 - Mini player dock with controls
 - Now playing sheet with full controls
 - Design system with theme and components
+- Settings screen with segmented picker
 
-### Additional Features ✅
-- YouTube Music InnerTube protocol implementation
-- Stream URL resolution
-- Queue management UI with QueueSheet
-- Lyrics providers (LRCLIB, Genius) with fallback
-- Complete settings screen with all options
-- Last.fm scrobbling service
-- Spotify integration service
-- Discord Rich Presence service
-- Image caching system
-- Centralized error handling
-- Unit tests for queue, LRC parsing, and settings
+### Library Management ✅ COMPLETE
+- **LibraryManager**: Full library management
+  - Save/remove tracks, albums, artists
+  - Create/edit/delete playlists
+  - Pin/unpin playlists
+  - Add/remove songs from playlists
+  - Move songs within playlists
+  - YouTube Music library sync
+  - Recently played tracking
+  - Download tracking
+  - Search within library
+  - Statistics (total tracks, albums, artists, playlists)
+
+### Lyrics Integration ✅ COMPLETE
+- **LyricsProviders**: Multiple provider support
+  - LRCLIB provider (synced and plain lyrics)
+  - Genius provider (plain lyrics)
+  - Musixmatch provider (optional API key)
+  - Provider fallback system
+- **LRC Parser**: LRC format parsing
+  - Time tag parsing ([mm:ss.xx])
+  - Line ordering
+  - Support for enhanced LRC
+- **LyricsManager**: Unified lyrics interface
+  - Fetch lyrics with fallback
+  - Synced lyrics support
+  - Plain lyrics fallback
+
+### Settings ✅ COMPLETE
+- **SettingsManager**: Full settings persistence
+  - Playback settings (quality, crossfade, speed, silence, normalization, gapless, sleep timer)
+  - Appearance settings (theme, artwork-driven theming)
+  - Library settings (view type, sort, swipe gestures)
+  - Integration settings (Last.fm, ListenBrainz, Discord, Spotify)
+  - Source settings (module sources, preferred source)
+  - Party settings (server URL)
+- **SettingsScreen**: Complete UI
+  - Segmented picker for sections
+  - Last.fm configuration view
+  - ListenBrainz configuration view
+  - Spotify configuration view
+  - Account settings (sign in/out)
+  - About section (version, license, GitHub)
+
+### Integrations (Structure in Place) ⚠️ NEEDS WIRING
+- **LastFMService**: Service structure exists, needs scrobbling logic
+- **SpotifyService**: Service structure exists, needs OAuth and API calls
+- **DiscordService**: Service structure exists, needs RPC implementation
+
+### Advanced Features ⚠️ NOT IMPLEMENTED
+- Canvas artwork system (Apple Music, Spotify, Tidal)
+- Downloads and offline mode
+- Listen Together (party mode)
+- Advanced audio features (crossfade, equalizer)
+- Animated artwork
+- Background audio with full lock screen controls
+- Smart playlists
 
 ## Build Instructions
 
@@ -127,30 +219,33 @@ GitHub Actions workflow:
 
 ## Next Steps
 
-### High Priority
-1. Implement YouTube Music InnerTube protocol for stream resolution
-2. Complete audio playback with real stream URLs
-3. Implement queue management UI
-4. Add settings screen with all options
-5. Implement lyrics providers and display
+### Immediate (Testing Required)
+1. Test YouTube Music API integration on device
+2. Test audio playback with real stream URLs
+3. Test authentication flow
+4. Test queue management
+5. Test lyrics fetching and display
+6. Test library operations
+7. Test settings persistence
 
 ### Medium Priority
-6. Add Last.fm scrobbling
-7. Implement Spotify integration
-8. Add Discord Rich Presence
-9. Implement animated artwork (canvas)
-10. Add local file playback
+8. Wire up Last.fm scrobbling with PlaybackManager
+9. Implement Spotify OAuth and library import
+10. Implement Discord Rich Presence
+11. Add canvas artwork system
+12. Implement downloads and offline mode
 
 ### Lower Priority
-11. Add advanced audio features (crossfade, equalizer)
-12. Implement Listen Together (party mode)
-13. Add downloads and offline mode
-14. Implement canvas artwork from multiple sources
-15. Add comprehensive error handling
+13. Add advanced audio features (crossfade, equalizer)
+14. Implement Listen Together (party mode)
+15. Add smart playlists
+16. Optimize performance and caching
+17. Add comprehensive error handling
 
 ## Known Limitations
 
-- YouTube Music InnerTube protocol implementation is complex and requires reverse engineering
+- YouTube Music InnerTube protocol may need updates as YouTube changes
+- PoToken WebView implementation not yet added (for age-restricted content)
 - Background audio requires proper Info.plist entitlements
 - Some features may require third-party libraries (e.g., for equalizer)
 - iOS sandbox restrictions limit some file system operations
@@ -160,39 +255,46 @@ GitHub Actions workflow:
 
 ### Unit Tests
 Test core business logic:
-- Queue operations
-- LRC parsing
-- Settings persistence
-- Model validation
+- Queue operations ✅ (implemented)
+- LRC parsing ✅ (implemented)
+- Settings persistence ✅ (implemented)
 
-### UI Tests
-Test critical user flows:
-- Navigation
+### Integration Tests Needed
+- YouTube Music API calls
+- Stream resolution
+- Audio playback
+- Authentication flow
+- Lyrics fetching
+
+### UI Tests Needed
+- Navigation flows
 - Playback controls
 - Library operations
+- Settings screen
 
 ## Dependencies
 
 Current implementation uses only iOS system frameworks:
 - SwiftUI
 - AVFoundation
-- SwiftData
+- MediaPlayer
 - Foundation
 - Combine
 
 Future dependencies may include:
-- Alamofire (networking)
-- Kingfisher (image loading)
-- SwiftDate (date handling)
-- lottie-ios (animations)
+- Alamofire (networking) - optional, current HttpClient works
+- Kingfisher (image loading) - optional, current image cache works
+- SwiftDate (date handling) - optional, Foundation works
+- lottie-ios (animations) - for canvas artwork
 
 ## Performance Considerations
 
-- Image loading should use async/await with caching
-- Lists should use LazyVStack/LazyVGrid
-- Search input should be debounced
-- Network requests should be cancellable
-- Audio playback should remain responsive during navigation
+- Image loading uses async/await with caching
+- Lists use LazyVStack/LazyVGrid
+- Search input should be debounced (add to implementation)
+- Network requests are cancellable
+- Audio playback remains responsive during navigation
+- Stream URLs are cached with TTL
 
 ## Security
 
@@ -200,7 +302,24 @@ Future dependencies may include:
 - No hardcoded API keys
 - OAuth flows for third-party integrations
 - Secure HTTP only (HTTPS)
-- Certificate pinning for critical endpoints
+- Certificate pinning for critical endpoints (not yet implemented)
+
+## Verification Commands
+
+### Build
+```bash
+xcodebuild -project BitChord.xcodeproj -scheme BitChord -sdk iphonesimulator
+```
+
+### Run Tests
+```bash
+xcodebuild test -project BitChord.xcodeproj -scheme BitChord -sdk iphonesimulator
+```
+
+### Clean Build
+```bash
+xcodebuild clean -project BitChord.xcodeproj -scheme BitChord
+```
 
 ## License
 

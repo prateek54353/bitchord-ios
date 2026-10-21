@@ -53,6 +53,10 @@ class ErrorHandler {
                 return "\(baseMessage)No suitable audio format found"
             case .invalidResponse:
                 return "\(baseMessage)Invalid stream response"
+            case .unplayable(let reason):
+                return "\(baseMessage)Track unplayable: \(reason)"
+            case .ageRestricted:
+                return "\(baseMessage)This track is age-restricted"
             }
         }
 
@@ -125,7 +129,12 @@ class ErrorHandler {
         }
 
         if let streamError = error as? StreamError {
-            return "This track is not available for playback."
+            switch streamError {
+            case .ageRestricted:
+                return "This track is age-restricted. Please sign in to play it."
+            default:
+                return "This track is not available for playback."
+            }
         }
 
         if let lyricsError = error as? LyricsError {

@@ -1,6 +1,8 @@
 import Foundation
 import AVFoundation
 import Combine
+import MediaPlayer
+import UIKit
 
 /// Playback state
 enum PlaybackState: Equatable {
@@ -11,7 +13,15 @@ enum PlaybackState: Equatable {
     case error(String)
 }
 
+/// Repeat mode
+enum RepeatMode: String, CaseIterable {
+    case off = "Off"
+    case all = "All"
+    case one = "One"
+}
+
 /// Main playback manager using AVPlayer
+/// Ported from Android's PlaybackService.kt
 @MainActor
 class PlaybackManager: ObservableObject {
     @Published var playbackState: PlaybackState = .idle
@@ -27,23 +37,76 @@ class PlaybackManager: ObservableObject {
     private var timeObserver: Any?
     private var _queue: [Song] = []
     private var _queueIndex: Int = 0
+    private var _originalQueue: [Song] = [] // For shuffle unshuffle
     private let streamResolver: StreamResolver
+    private let audioSessionManager: AudioSessionManager
 
-    init(streamResolver: StreamResolver = StreamResolver()) {
+    // Playback state
+    private var playbackRate: Float = 1.0
+    private var volume: Float = 1.0
+
+    init(
+        streamResolver: StreamResolver = .shared,
+        audioSessionManager: AudioSessionManager = .shared
+    ) {
         self.streamResolver = streamResolver
+        self.audioSessionManager = audioSessionManager
         setupAudioSession()
+        setupRemoteCommands()
     }
 
     private func setupAudioSession() {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(
-                .playback,
-                mode: .default,
-                options: [.allowAirPlay, .allowBluetooth]
-            )
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Failed to setup audio session: \(error)")
+        audioSessionManager.setup()
+    }
+
+    private func setupRemoteCommands() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+
+        commandCenter.playCommand.addTarget { [weak self] event in
+            self?.play()
+            return .success
+        }
+
+        commandCenter.pauseCommand.addTarget { [weak self] event in
+            self?.pause()
+            return .success
+        }
+
+        commandCenter.nextTrackCommand.addTarget { [weak self] event in
+            self?.next()
+            return .success
+        }
+
+        commandCenter.previousTrackCommand.addTarget { [weak self] event in
+            self?.previous()
+            return .success
+        }
+
+        commandCenter.skipForwardCommand.addTarget { [weak self] event in
+            let interval = event as? MPSkipIntervalCommandEvent
+            self?.seek(relative: interval?.interval ?? 15)
+            return .success
+        }
+
+        commandCenter.skipBackwardCommand.addTarget { [weak self] event in
+            let interval = event as? MPSkipIntervalCommandEvent
+            self?.seek(relative: -(interval?.interval ?? 15))
+            return .success
+        }
+
+        commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
+            let positionEvent = event as? MPChangePlaybackPositionCommandEvent
+            self?.seek(to: positionEvent?.positionTime ?? 0)
+            return .success
+        }
+
+        commandCenter.togglePlayPauseCommand.addTarget { [weak self] event in
+            if self?.isPlaying == true {
+                self?.pause()
+            } else {
+                self?.play()
+            }
+            return .success
         }
     }
 
@@ -51,20 +114,24 @@ class PlaybackManager: ObservableObject {
 
     func setQueue(_ songs: [Song], startIndex: Int = 0) {
         _queue = songs
+        _originalQueue = songs
         _queueIndex = startIndex
     }
 
     func addToQueue(_ songs: [Song], at index: Int? = nil) {
         if let index = index {
             _queue.insert(contentsOf: songs, at: index)
+            _originalQueue.insert(contentsOf: songs, at: index)
         } else {
             _queue.append(contentsOf: songs)
+            _originalQueue.append(contentsOf: songs)
         }
     }
 
     func removeFromQueue(at index: Int) {
         guard index < _queue.count else { return }
         _queue.remove(at: index)
+        _originalQueue.remove(at: index)
         if index < _queueIndex {
             _queueIndex -= 1
         }
@@ -72,7 +139,27 @@ class PlaybackManager: ObservableObject {
 
     func clearQueue() {
         _queue.removeAll()
+        _originalQueue.removeAll()
         _queueIndex = 0
+    }
+
+    func moveItem(from sourceIndex: Int, to destinationIndex: Int) {
+        guard sourceIndex < _queue.count, destinationIndex < _queue.count else { return }
+        let item = _queue.remove(at: sourceIndex)
+        _queue.insert(item, at: destinationIndex)
+
+        // Update original queue too
+        let originalItem = _originalQueue.remove(at: sourceIndex)
+        _originalQueue.insert(originalItem, at: destinationIndex)
+
+        // Adjust current index if needed
+        if sourceIndex == _queueIndex {
+            _queueIndex = destinationIndex
+        } else if sourceIndex < _queueIndex && destinationIndex >= _queueIndex {
+            _queueIndex -= 1
+        } else if sourceIndex > _queueIndex && destinationIndex <= _queueIndex {
+            _queueIndex += 1
+        }
     }
 
     // MARK: - Playback Controls
@@ -93,26 +180,18 @@ class PlaybackManager: ObservableObject {
         loadAndPlay(_queue[index])
     }
 
-    // MARK: - Queue Access
-
-    var queue: [Song] {
-        get { _queue }
-    }
-
-    var queueIndex: Int {
-        get { _queueIndex }
-    }
-
     func pause() {
         player?.pause()
         isPlaying = false
         playbackState = .paused
+        updateNowPlayingInfo()
     }
 
     func resume() {
         player?.play()
         isPlaying = true
         playbackState = .playing
+        updateNowPlayingInfo()
     }
 
     func stop() {
@@ -120,6 +199,7 @@ class PlaybackManager: ObservableObject {
         player?.seek(to: .zero)
         isPlaying = false
         playbackState = .idle
+        updateNowPlayingInfo()
     }
 
     func next() {
@@ -148,6 +228,63 @@ class PlaybackManager: ObservableObject {
     func seek(to time: TimeInterval) {
         player?.seek(to: CMTime(seconds: time, preferredTimescale: 600))
         currentTime = time
+        updateNowPlayingInfo()
+    }
+
+    func seek(relative seconds: TimeInterval) {
+        let newTime = currentTime + seconds
+        seek(to: max(0, min(newTime, duration)))
+    }
+
+    func setPlaybackRate(_ rate: Float) {
+        playbackRate = rate
+        player?.rate = isPlaying ? rate : 0
+    }
+
+    func setVolume(_ vol: Float) {
+        volume = vol
+        player?.volume = vol
+    }
+
+    func toggleShuffle() {
+        isShuffled.toggle()
+        if isShuffled {
+            _originalQueue = _queue
+            _queue.shuffle()
+            // Keep current position
+            if let current = currentSong, let newIndex = _queue.firstIndex(where: { $0.videoId == current.videoId }) {
+                _queueIndex = newIndex
+            }
+        } else {
+            // Restore original order
+            if let current = currentSong, let originalIndex = _originalQueue.firstIndex(where: { $0.videoId == current.videoId }) {
+                _queue = _originalQueue
+                _queueIndex = originalIndex
+            } else {
+                _queue = _originalQueue
+            }
+        }
+    }
+
+    func toggleRepeat() {
+        switch repeatMode {
+        case .off:
+            repeatMode = .all
+        case .all:
+            repeatMode = .one
+        case .one:
+            repeatMode = .off
+        }
+    }
+
+    // MARK: - Queue Access
+
+    var queue: [Song] {
+        get { _queue }
+    }
+
+    var queueIndex: Int {
+        get { _queueIndex }
     }
 
     // MARK: - Private Methods
@@ -167,19 +304,37 @@ class PlaybackManager: ObservableObject {
                 }
 
                 await MainActor.run {
-                    playerItem = AVPlayerItem(url: url)
+                    // Create new player item
+                    let asset = AVURLAsset(url: url)
+                    playerItem = AVPlayerItem(asset: asset)
+
+                    // Apply headers if provided
+                    if let headers = streamInfo.headers, !headers.isEmpty {
+                        // Note: AVURLAsset doesn't support custom headers directly
+                        // This would require a custom resource loader
+                    }
+
                     player = AVPlayer(playerItem: playerItem)
 
                     setupTimeObserver()
                     setupItemObservers()
 
+                    player?.rate = playbackRate
+                    player?.volume = volume
+
                     player?.play()
                     isPlaying = true
                     playbackState = .playing
+
+                    updateNowPlayingInfo()
                 }
             } catch {
                 await MainActor.run {
                     playbackState = .error(error.localizedDescription)
+                    // Auto-skip to next track on error
+                    if _queue.count > 1 {
+                        next()
+                    }
                 }
             }
         }
@@ -188,20 +343,129 @@ class PlaybackManager: ObservableObject {
     private func setupTimeObserver() {
         guard let player = player else { return }
 
+        // Remove existing observer
+        if let observer = timeObserver {
+            player.removeTimeObserver(observer)
+        }
+
         let interval = CMTime(seconds: 0.5, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
             self?.currentTime = time.seconds
             self?.duration = player.currentItem?.duration.seconds ?? 0
+            self?.updateNowPlayingInfo()
         }
     }
 
     private func setupItemObservers() {
-        // TODO: Add observers for playback end, errors, etc.
+        guard let playerItem = playerItem else { return }
+
+        // Observe when playback ends
+        NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: playerItem,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handlePlaybackEnd()
+        }
+
+        // Observe playback errors
+        NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemFailedToPlayToEndTime,
+            object: playerItem,
+            queue: .main
+        ) { [weak self] notification in
+            if let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error {
+                self?.playbackState = .error(error.localizedDescription)
+            }
+        }
+
+        // Observe playback buffer status
+        playerItem.addObserver(
+            self,
+            forKeyPath: "status",
+            options: [.new, .initial],
+            context: nil
+        )
+    }
+
+    private func handlePlaybackEnd() {
+        switch repeatMode {
+        case .one:
+            // Replay current track
+            seek(to: 0)
+            play()
+        case .all:
+            // Play next track
+            next()
+        case .off:
+            // Stop if last track, otherwise play next
+            if _queueIndex == _queue.count - 1 {
+                stop()
+            } else {
+                next()
+            }
+        }
+    }
+
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if keyPath == "status", let playerItem = object as? AVPlayerItem {
+            if playerItem.status == .readyToPlay {
+                duration = playerItem.duration.seconds
+                updateNowPlayingInfo()
+            } else if playerItem.status == .failed {
+                if let error = playerItem.error {
+                    playbackState = .error(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func updateNowPlayingInfo() {
+        guard let song = currentSong else { return }
+
+        var nowPlayingInfo = [String: Any]()
+
+        nowPlayingInfo[MPMediaItemPropertyTitle] = song.title
+        nowPlayingInfo[MPMediaItemPropertyArtist] = song.artist
+        nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? playbackRate : 0
+        nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = playbackRate
+
+        if let albumName = song.albumName {
+            nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = albumName
+        }
+
+        if let trackNumber = song.trackNumber {
+            nowPlayingInfo[MPMediaItemPropertyTrackNumber] = trackNumber
+        }
+
+        // Set artwork if available
+        if let artworkUrl = song.artworkAt(px: Song.notificationArtPx),
+           let url = URL(string: artworkUrl) {
+            // Load artwork asynchronously
+            Task {
+                if let data = try? Data(contentsOf: url) {
+                    #if canImport(UIKit)
+                    if let image = UIImage(data: data) {
+                        let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in
+                            return image
+                        }
+                        nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+                    }
+                    #endif
+                }
+            }
+        }
+
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
 
     deinit {
         if let observer = timeObserver {
             player?.removeTimeObserver(observer)
         }
+        NotificationCenter.default.removeObserver(self)
     }
 }

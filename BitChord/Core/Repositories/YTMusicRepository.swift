@@ -2,9 +2,9 @@
 import Foundation
 
 class YTMusicRepository {
-    private let innerTubeClient: InnerTubeClient
-    
-    init(innerTubeClient: InnerTubeClient = InnerTubeClient()) {
+    private let innerTubeClient: InnerTubeClient.InnerTubeClient
+
+    init(innerTubeClient: InnerTubeClient.InnerTubeClient = InnerTubeClient.InnerTubeClient()) {
         self.innerTubeClient = innerTubeClient
     }
     

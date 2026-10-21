@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 @main
 struct BitChordApp: App {
@@ -19,7 +18,6 @@ struct BitChordApp: App {
                     setupApp()
                 }
         }
-        .modelContainer(SharedDataContainer)
     }
 
     private func setupApp() {

@@ -10,6 +10,7 @@ class AppState: ObservableObject {
     @Published var showingNowPlaying = false
     @Published var showingQueue = false
     @Published var showingMiniPlayer = false
+    @Published var showingSettings = false
 
     init() {
         // Monitor network connectivity

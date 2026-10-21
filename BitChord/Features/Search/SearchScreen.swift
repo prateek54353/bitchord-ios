@@ -3,7 +3,8 @@ import SwiftUI
 struct SearchScreen: View {
     @State private var searchText = ""
     @State private var selectedFilter: SearchFilter = .all
-    @State private var isSearching = false
+    @StateObject private var repository = YTMusicRepository.shared
+    @EnvironmentObject var playbackManager: PlaybackManager
 
     var body: some View {
         NavigationView {
@@ -58,11 +59,8 @@ struct SearchScreen: View {
                 ScrollView {
                     if searchText.isEmpty {
                         SearchHistoryView()
-                    } else if isSearching {
-                        ProgressView()
-                            .padding()
                     } else {
-                        SearchResultsView(query: searchText, filter: selectedFilter)
+                        SearchResultsView(results: repository.searchResults)
                     }
                 }
             }
@@ -74,11 +72,8 @@ struct SearchScreen: View {
 
     private func performSearch() {
         guard !searchText.isEmpty else { return }
-        isSearching = true
-
-        // TODO: Perform actual search
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            isSearching = false
+        Task {
+            await repository.search(query: searchText, filter: selectedFilter)
         }
     }
 }
@@ -178,51 +173,79 @@ struct BrowseCategoryCard: View {
 }
 
 struct SearchResultsView: View {
-    let query: String
-    let filter: SearchFilter
+    let results: UiState<[SearchResult]>
+    @EnvironmentObject var playbackManager: PlaybackManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: BitChordTheme.spacingLg) {
-            Text("Results for \"\(query)\"")
-                .font(BitChordTheme.headline)
-                .foregroundColor(BitChordTheme.text)
-                .padding(.horizontal)
+            switch results {
+            case .loading:
+                ProgressView()
+                    .padding()
 
-            // Placeholder results
-            VStack(spacing: BitChordTheme.spacingMd) {
-                ForEach(0..<5) { _ in
-                    SearchResultRow()
+            case .loaded(let searchResults):
+                if searchResults.isEmpty {
+                    Text("No results found")
+                        .font(BitChordTheme.body)
+                        .foregroundColor(BitChordTheme.textSecondary)
+                        .padding()
+                } else {
+                    VStack(spacing: BitChordTheme.spacingMd) {
+                        ForEach(searchResults, id: \.id) { result in
+                            SearchResultRow(result: result)
+                        }
+                    }
+                    .padding(.horizontal)
                 }
+
+            case .error(let message):
+                Text(message)
+                    .font(BitChordTheme.body)
+                    .foregroundColor(BitChordTheme.error)
+                    .padding()
             }
-            .padding(.horizontal)
         }
         .padding(.vertical)
     }
 }
 
 struct SearchResultRow: View {
+    let result: SearchResult
+    @EnvironmentObject var playbackManager: PlaybackManager
+
     var body: some View {
         HStack(spacing: BitChordTheme.spacingMd) {
-            Rectangle()
-                .fill(BitChordTheme.surfaceVariant)
-                .frame(width: 52, height: 52)
-                .cornerRadius(BitChordTheme.radiusSm)
+            AsyncImage(url: URL(string: result.artworkAt(px: 52) ?? "")) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Rectangle()
+                    .fill(BitChordTheme.surfaceVariant)
+            }
+            .frame(width: 52, height: 52)
+            .cornerRadius(BitChordTheme.radiusSm)
 
             VStack(alignment: .leading, spacing: BitChordTheme.spacingXxs) {
-                Rectangle()
-                    .fill(BitChordTheme.surfaceVariant)
-                    .frame(height: 16)
-                    .frame(maxWidth: 200)
+                Text(result.title)
+                    .font(BitChordTheme.body)
+                    .foregroundColor(BitChordTheme.text)
 
-                Rectangle()
-                    .fill(BitChordTheme.surfaceVariant)
-                    .frame(height: 14)
-                    .frame(maxWidth: 150)
+                if let subtitle = result.subtitle {
+                    Text(subtitle)
+                        .font(BitChordTheme.caption1)
+                        .foregroundColor(BitChordTheme.textSecondary)
+                }
             }
 
             Spacer()
         }
         .padding(.vertical, BitChordTheme.spacingXs)
+        .onTapGesture {
+            if let song = result.asSong {
+                playbackManager.play(song)
+            }
+        }
     }
 }
 

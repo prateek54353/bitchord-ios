@@ -114,7 +114,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: BitChord-device-unsigned-ipa
-        path: BitChord-device-unsigned.ipa
+        path: build/BitChord-device-unsigned.ipa
         retention-days: 30
 
     - name: Upload Archive

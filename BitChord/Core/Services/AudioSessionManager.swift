@@ -67,7 +67,7 @@ class AudioSessionManager {
     }
 
     private func setupNowPlayingInfo() {
-        var nowPlayingInfo = [String: Any]()
+        let nowPlayingInfo = [String: Any]()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
 

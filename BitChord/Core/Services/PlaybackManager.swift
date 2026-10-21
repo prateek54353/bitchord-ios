@@ -23,7 +23,7 @@ enum RepeatMode: String, CaseIterable {
 /// Main playback manager using AVPlayer
 /// Ported from Android's PlaybackService.kt
 @MainActor
-class PlaybackManager: ObservableObject {
+class PlaybackManager: NSObject, ObservableObject {
     @Published var playbackState: PlaybackState = .idle
     @Published var currentSong: Song?
     @Published var currentTime: TimeInterval = 0
@@ -56,7 +56,7 @@ class PlaybackManager: ObservableObject {
     }
 
     private func setupAudioSession() {
-        audioSessionManager.setup()
+        audioSessionManager.configure()
     }
 
     private func setupRemoteCommands() {
@@ -167,7 +167,7 @@ class PlaybackManager: ObservableObject {
     func play(_ song: Song? = nil) {
         if let song = song {
             loadAndPlay(song)
-        } else if let currentItem = currentSong {
+        } else if currentSong != nil {
             resume()
         } else if !_queue.isEmpty {
             loadAndPlay(_queue[_queueIndex])
@@ -309,7 +309,7 @@ class PlaybackManager: ObservableObject {
                     playerItem = AVPlayerItem(asset: asset)
 
                     // Apply headers if provided
-                    if let headers = streamInfo.headers, !headers.isEmpty {
+                    if !streamInfo.headers.isEmpty {
                         // Note: AVURLAsset doesn't support custom headers directly
                         // This would require a custom resource loader
                     }
@@ -350,9 +350,11 @@ class PlaybackManager: ObservableObject {
 
         let interval = CMTime(seconds: 0.5, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-            self?.currentTime = time.seconds
-            self?.duration = player.currentItem?.duration.seconds ?? 0
-            self?.updateNowPlayingInfo()
+            Task { @MainActor in
+                self?.currentTime = time.seconds
+                self?.duration = player.currentItem?.duration.seconds ?? 0
+                self?.updateNowPlayingInfo()
+            }
         }
     }
 
@@ -365,7 +367,9 @@ class PlaybackManager: ObservableObject {
             object: playerItem,
             queue: .main
         ) { [weak self] _ in
-            self?.handlePlaybackEnd()
+            Task { @MainActor in
+                self?.handlePlaybackEnd()
+            }
         }
 
         // Observe playback errors
@@ -374,8 +378,10 @@ class PlaybackManager: ObservableObject {
             object: playerItem,
             queue: .main
         ) { [weak self] notification in
-            if let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error {
-                self?.playbackState = .error(error.localizedDescription)
+            Task { @MainActor in
+                if let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error {
+                    self?.playbackState = .error(error.localizedDescription)
+                }
             }
         }
 
@@ -436,9 +442,10 @@ class PlaybackManager: ObservableObject {
             nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = albumName
         }
 
-        if let trackNumber = song.trackNumber {
-            nowPlayingInfo[MPMediaItemPropertyTrackNumber] = trackNumber
-        }
+        // Note: MPMediaItemPropertyTrackNumber is deprecated/not available in all iOS versions
+        // if let trackNumber = song.trackNumber {
+        //     nowPlayingInfo[MPMediaItemPropertyTrackNumber] = trackNumber
+        // }
 
         // Set artwork if available
         if let artworkUrl = song.artworkAt(px: Song.notificationArtPx),

@@ -314,7 +314,7 @@ struct LastFmSettingsView: View {
             apiKey = settingsManager.settings.lastfmApiKey ?? ""
             secret = settingsManager.settings.lastfmSecret ?? ""
             sessionKey = settingsManager.settings.lastfmSessionKey ?? ""
-            endpoint = settingsManager.settings.lastfmEndpoint ?? "https://ws.audioscrobbler.com/2.0/"
+            endpoint = settingsManager.settings.lastfmEndpoint
         }
     }
 }

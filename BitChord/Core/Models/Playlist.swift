@@ -11,6 +11,7 @@ struct UserPlaylist: Identifiable, Codable, Hashable {
     var isPinned: Bool
     let isEditable: Bool
     let lastModified: Date?
+    var songs: [Song]
 
     init(
         playlistId: String,
@@ -20,7 +21,8 @@ struct UserPlaylist: Identifiable, Codable, Hashable {
         trackCount: Int = 0,
         isPinned: Bool = false,
         isEditable: Bool = true,
-        lastModified: Date? = nil
+        lastModified: Date? = nil,
+        songs: [Song] = []
     ) {
         self.id = playlistId
         self.playlistId = playlistId
@@ -31,6 +33,7 @@ struct UserPlaylist: Identifiable, Codable, Hashable {
         self.isPinned = isPinned
         self.isEditable = isEditable
         self.lastModified = lastModified
+        self.songs = songs
     }
 
     func artworkAt(px: Int) -> String? {

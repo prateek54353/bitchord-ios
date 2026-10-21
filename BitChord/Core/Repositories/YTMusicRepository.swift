@@ -3,7 +3,8 @@ import Foundation
 
 /// Suspend API over Innertube. Every call returns a Result so the UI can show a real error.
 /// Ported from Android's YtMusicRepository.kt
-class YTMusicRepository {
+@MainActor
+class YTMusicRepository: ObservableObject {
     static let shared = YTMusicRepository()
 
     private let innerTubeClient: InnerTubeClient
@@ -112,9 +113,12 @@ class YTMusicRepository {
         if !qpSongs.isEmpty { return qpSongs }
 
         // 2. All shelves on Home (excluding recent/history)
-        let candidateShelves = shelves.count > 1
-            ? Array(shelves.drop(1)).filter { shelf in !isHistoryShelf(shelf) }
-            : shelves
+        let candidateShelves: [HomeShelf]
+        if shelves.count > 1 {
+            candidateShelves = shelves.dropFirst().filter { !isHistoryShelf($0) }
+        } else {
+            candidateShelves = shelves
+        }
 
         let homeShelfSongs = candidateShelves.flatMap { shelf in
             shelf.items.compactMap { item -> Song? in
@@ -305,6 +309,12 @@ class YTMusicRepository {
         let songs = InnertubeParser.collectSongsDeep(from: response)
         let continuation = InnertubeParser.extractSectionListContinuation(from: response)
         return (songs, continuation)
+    }
+
+    /// Load browse page (for explore)
+    func loadBrowsePage(browseId: String) async throws -> [BrowseItem] {
+        let response = try await innerTubeClient.sendRequest(endpoint: "browse", body: ["browseId": browseId])
+        return InnertubeParser.parseBrowsePage(from: response)
     }
 
     /// Browse continuation for pagination

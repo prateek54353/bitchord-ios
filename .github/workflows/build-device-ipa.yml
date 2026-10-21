@@ -25,13 +25,11 @@ jobs:
 
     - name: Clean build folder
       run: |
-        cd BitChord
         rm -rf build
         xcodebuild clean -project BitChord.xcodeproj -scheme BitChord
 
     - name: Build for iOS Device (Universal Binary)
       run: |
-        cd BitChord
         xcodebuild build \
           -project BitChord.xcodeproj \
           -scheme BitChord \
@@ -45,7 +43,6 @@ jobs:
 
     - name: Archive for iOS Device
       run: |
-        cd BitChord
         xcodebuild archive \
           -project BitChord.xcodeproj \
           -scheme BitChord \
@@ -60,7 +57,6 @@ jobs:
 
     - name: Create Export Options for Unsigned IPA
       run: |
-        cd BitChord
         cat > ExportOptions.plist <<EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -84,7 +80,6 @@ jobs:
 
     - name: Export Unsigned IPA
       run: |
-        cd BitChord
         xcodebuild -exportArchive \
           -archivePath build/BitChord-Device.xcarchive \
           -exportPath build/export-device \
@@ -93,7 +88,6 @@ jobs:
 
     - name: Locate and Verify IPA
       run: |
-        cd BitChord
         echo "Looking for IPA in export-device directory..."
         find build/export-device -name "*.ipa" -type f
         if [ -f "build/export-device/BitChord.ipa" ]; then
@@ -110,7 +104,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: BitChord-device-unsigned-ipa
-        path: BitChord/BitChord-device-unsigned.ipa
+        path: BitChord-device-unsigned.ipa
         retention-days: 30
 
     - name: Upload Archive
@@ -118,7 +112,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: BitChord-xcarchive
-        path: BitChord/build/BitChord-Device.xcarchive
+        path: build/BitChord-Device.xcarchive
         retention-days: 7
 
     - name: Upload Build Logs
@@ -127,5 +121,5 @@ jobs:
       with:
         name: device-build-logs
         path: |
-          BitChord/build/
+          build/
         retention-days: 7

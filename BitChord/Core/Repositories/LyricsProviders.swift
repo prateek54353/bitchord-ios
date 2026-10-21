@@ -68,7 +68,9 @@ class GeniusProvider: LyricsProviderProtocol {
     func fetchLyrics(for song: Song) async throws -> Lyrics {
         // Search for the song
         let searchQuery = "\(song.artist) \(song.title)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let searchURL = URL(string: "\(baseURL)/api/search/multi?q=\(searchQuery)")!
+        guard let searchURL = URL(string: "\(baseURL)/api/search/multi?q=\(searchQuery)") else {
+            throw LyricsError.invalidResponse
+        }
 
         let data = try await httpClient.get(url: searchURL)
 

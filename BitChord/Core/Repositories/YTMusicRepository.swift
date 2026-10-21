@@ -24,6 +24,11 @@ class YTMusicRepository {
         return innerTubeClient.isLoggedIn
     }
 
+    /// Initialize the repository (fetch visitor data and shell config)
+    func initialize() async {
+        await innerTubeClient.initialize()
+    }
+
     // MARK: - Home Feed
 
     /// The core personalised feed
@@ -108,7 +113,7 @@ class YTMusicRepository {
 
         // 2. All shelves on Home (excluding recent/history)
         let candidateShelves = shelves.count > 1
-            ? shelves.drop(1).filter { !isHistoryShelf($0) }
+            ? shelves.drop(1).filter { shelf in !isHistoryShelf(shelf) }
             : shelves
 
         let homeShelfSongs = candidateShelves.flatMap { shelf in
@@ -121,7 +126,7 @@ class YTMusicRepository {
                     thumbnailUrl: item.thumbnailUrl
                 )
             }
-        }.deduplicated(by: \.videoId)
+        }.deduplicated(by: \Song.videoId)
 
         if !homeShelfSongs.isEmpty { return homeShelfSongs }
 
@@ -136,7 +141,7 @@ class YTMusicRepository {
                     thumbnailUrl: item.thumbnailUrl
                 )
             }
-        }.deduplicated(by: \.videoId)
+        }.deduplicated(by: \Song.videoId)
 
         let uniqueAllHome = allHomeTrackSongs.filter { !excludeSongIds.contains($0.videoId) }
         if !uniqueAllHome.isEmpty { return uniqueAllHome }
@@ -153,7 +158,7 @@ class YTMusicRepository {
                     thumbnailUrl: item.thumbnailUrl
                 )
             }
-        }.deduplicated(by: \.videoId) ?? []
+        }.deduplicated(by: \Song.videoId) ?? []
 
         if !exploreSongs.isEmpty { return exploreSongs }
 
@@ -209,10 +214,13 @@ class YTMusicRepository {
             return cached
         }
 
-        let response = try await innerTubeClient.sendRequest(endpoint: "browse", body: [
-            "browseId": browseId,
-            "params": params
-        ])
+        let response = try await innerTubeClient.sendRequest(endpoint: "browse", body: {
+            var body: [String: Any] = ["browseId": browseId]
+            if let params = params {
+                body["params"] = params
+            }
+            return body
+        }())
         let shelves = InnertubeParser.parseHome(from: response)
         moodGenreShelfCache[key] = shelves
         return shelves

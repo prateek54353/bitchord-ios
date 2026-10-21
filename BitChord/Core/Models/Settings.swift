@@ -123,21 +123,6 @@ enum ThemeMode: String, Codable, CaseIterable {
     }
 }
 
-/// Repeat mode
-enum RepeatMode: String, Codable, CaseIterable {
-    case off = "OFF"
-    case all = "ALL"
-    case one = "ONE"
-
-    var displayName: String {
-        switch self {
-        case .off: return "Off"
-        case .all: return "All"
-        case .one: return "One"
-        }
-    }
-}
-
 /// Sleep timer presets
 enum SleepTimerPreset: TimeInterval, CaseIterable {
     case none = 0

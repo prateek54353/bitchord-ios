@@ -88,9 +88,6 @@ class AuthManager: ObservableObject {
                ) {
                 availableChannels = channels
             }
-        } catch {
-            print("Failed to load session: \(error)")
-        }
     }
 
     private func saveSession() async {

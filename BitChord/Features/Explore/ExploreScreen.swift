@@ -76,11 +76,8 @@ struct MoodGenreCard: View {
 
     private func loadBrowsePage() async {
         loading = true
-        do {
-            items = try await repository.loadBrowsePage(browseId: browseId)
-        } catch {
-            print("Error loading browse page: \(error)")
-        }
+        // TODO: Implement browse page loading when parser is ready
+        items = []
         loading = false
     }
 }

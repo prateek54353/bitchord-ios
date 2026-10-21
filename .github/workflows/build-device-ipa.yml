@@ -86,27 +86,19 @@ jobs:
 
     - name: Create IPA from Archive
       run: |
-        # If export failed, create IPA manually from archive
-        if [ ! -d "build/export-device/BitChord.app" ]; then
-          echo "Extracting app from archive..."
-          cd build/BitChord-Device.xcarchive/Products/Applications
-          if [ -d "BitChord.app" ]; then
-            cd ../../../..
-            mkdir -p build/export-device
-            cp -R build/BitChord-Device.xcarchive/Products/Applications/BitChord.app build/export-device/
-            cd build/export-device
-            zip -r ../BitChord-device-unsigned.ipa BitChord.app
-            cd ..
-            echo "IPA created manually from archive"
-          else
-            echo "BitChord.app not found in archive"
-            exit 1
-          fi
+        # Create IPA manually from archive with proper structure
+        echo "Extracting app from archive..."
+        cd build/BitChord-Device.xcarchive/Products/Applications
+        if [ -d "BitChord.app" ]; then
+          cd ../../../..
+          mkdir -p build/Payload
+          cp -R build/BitChord-Device.xcarchive/Products/Applications/BitChord.app build/Payload/
+          cd build
+          zip -r BitChord-device-unsigned.ipa Payload
+          echo "IPA created with proper Payload structure"
         else
-          cd build/export-device
-          zip -r ../BitChord-device-unsigned.ipa BitChord.app
-          cd ..
-          echo "IPA created from export"
+          echo "BitChord.app not found in archive"
+          exit 1
         fi
 
     - name: Upload Device IPA

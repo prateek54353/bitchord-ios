@@ -73,8 +73,8 @@ struct HomeFeedView: View {
 
         case .loaded(let homeFeed):
             VStack(alignment: .leading, spacing: BitChordTheme.spacingLg) {
-                ForEach(homeFeed.shelves, id: \.title) { shelf in
-                    ShelfView(shelf: shelf)
+                ForEach(homeFeed.shelves) { shelf in
+                    HomeShelfView(shelf: shelf)
                 }
             }
 
@@ -98,8 +98,8 @@ struct HomeFeedView: View {
     }
 }
 
-struct ShelfView: View {
-    let shelf: ShelfItem
+struct HomeShelfView: View {
+    let shelf: HomeShelf
     @EnvironmentObject var playbackManager: PlaybackManager
 
     var body: some View {
@@ -111,8 +111,8 @@ struct ShelfView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: BitChordTheme.spacingMd) {
-                    ForEach(shelf.items, id: \.id) { item in
-                        BrowseItemCard(item: item)
+                    ForEach(shelf.items) { item in
+                        ShelfItemCard(item: item)
                     }
                 }
                 .padding(.horizontal)
@@ -121,13 +121,13 @@ struct ShelfView: View {
     }
 }
 
-struct BrowseItemCard: View {
-    let item: BrowseItem
+struct ShelfItemCard: View {
+    let item: ShelfItem
     @EnvironmentObject var playbackManager: PlaybackManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: BitChordTheme.spacingXs) {
-            AsyncImage(url: URL(string: item.artworkAt(px: Int(BrowseItem.cardArtPx)) ?? "")) { image in
+            AsyncImage(url: URL(string: item.artworkAt(px: Int(Song.cardArtPx)) ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -143,8 +143,8 @@ struct BrowseItemCard: View {
                 .foregroundColor(BitChordTheme.text)
                 .lineLimit(2)
 
-            if let subtitle = item.subtitle {
-                Text(subtitle)
+            if !item.subtitle.isEmpty {
+                Text(item.subtitle)
                     .font(BitChordTheme.caption1)
                     .foregroundColor(BitChordTheme.textSecondary)
                     .lineLimit(1)
@@ -152,7 +152,16 @@ struct BrowseItemCard: View {
         }
         .frame(width: 140)
         .onTapGesture {
-            if let song = item.asSong {
+            if let videoId = item.videoId {
+                let song = Song(
+                    videoId: videoId,
+                    title: item.title,
+                    artist: item.subtitle,
+                    album: nil,
+                    duration: nil,
+                    artworkUrl: item.thumbnailUrl,
+                    queueTier: .context
+                )
                 playbackManager.play(song)
             }
         }

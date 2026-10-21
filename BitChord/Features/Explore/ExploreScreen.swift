@@ -87,7 +87,7 @@ struct MoodGenreCard: View {
 
 struct BrowsePageView: View {
     let item: BrowseItem
-    @State private var items: [ShelfItem] = []
+    @State private var shelves: [HomeShelf] = []
     @State private var loading = false
     @Environment(\.dismiss) private var dismiss
 
@@ -97,15 +97,15 @@ struct BrowsePageView: View {
                 if loading {
                     ProgressView()
                         .padding()
-                } else if items.isEmpty {
+                } else if shelves.isEmpty {
                     Text("No content available")
                         .font(BitChordTheme.body)
                         .foregroundColor(BitChordTheme.textSecondary)
                         .padding()
                 } else {
                     VStack(alignment: .leading, spacing: BitChordTheme.spacingLg) {
-                        ForEach(items, id: \.title) { shelf in
-                            ShelfView(shelf: shelf)
+                        ForEach(shelves) { shelf in
+                            BrowseShelfView(shelf: shelf)
                         }
                     }
                     .padding()
@@ -130,7 +130,15 @@ struct BrowsePageView: View {
     private func loadContent() async {
         loading = true
         do {
-            items = try await YTMusicRepository.shared.loadBrowsePage(browseId: item.browseId)
+            let shelfItems = try await YTMusicRepository.shared.loadBrowsePage(browseId: item.browseId)
+            // Convert ShelfItem array to HomeShelf
+            shelves = [
+                HomeShelf(
+                    title: item.title,
+                    items: shelfItems,
+                    subtitle: item.subtitle
+                )
+            ]
         } catch {
             print("Error: \(error)")
         }
@@ -138,8 +146,8 @@ struct BrowsePageView: View {
     }
 }
 
-struct ShelfView: View {
-    let shelf: ShelfItem
+struct BrowseShelfView: View {
+    let shelf: HomeShelf
     @EnvironmentObject var playbackManager: PlaybackManager
 
     var body: some View {
@@ -151,7 +159,7 @@ struct ShelfView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: BitChordTheme.spacingMd) {
-                    ForEach(shelf.items, id: \.id) { item in
+                    ForEach(shelf.items) { item in
                         BrowseItemCard(item: item)
                     }
                 }
@@ -162,12 +170,12 @@ struct ShelfView: View {
 }
 
 struct BrowseItemCard: View {
-    let item: BrowseItem
+    let item: ShelfItem
     @EnvironmentObject var playbackManager: PlaybackManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: BitChordTheme.spacingXs) {
-            AsyncImage(url: URL(string: item.artworkAt(px: Int(BrowseItem.cardArtPx)) ?? "")) { image in
+            AsyncImage(url: URL(string: item.artworkAt(px: Int(Song.cardArtPx)) ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -183,8 +191,8 @@ struct BrowseItemCard: View {
                 .foregroundColor(BitChordTheme.text)
                 .lineLimit(2)
 
-            if let subtitle = item.subtitle {
-                Text(subtitle)
+            if !item.subtitle.isEmpty {
+                Text(item.subtitle)
                     .font(BitChordTheme.caption1)
                     .foregroundColor(BitChordTheme.textSecondary)
                     .lineLimit(1)
@@ -192,7 +200,16 @@ struct BrowseItemCard: View {
         }
         .frame(width: 140)
         .onTapGesture {
-            if let song = item.asSong {
+            if let videoId = item.videoId {
+                let song = Song(
+                    videoId: videoId,
+                    title: item.title,
+                    artist: item.subtitle,
+                    album: nil,
+                    duration: nil,
+                    artworkUrl: item.thumbnailUrl,
+                    queueTier: .context
+                )
                 playbackManager.play(song)
             }
         }

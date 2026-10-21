@@ -16,13 +16,15 @@ struct BrowseItem: Identifiable, Codable, Hashable {
     let subtitle: String
     let thumbnailUrl: String?
     let type: BrowseType
+    let videoId: String?
 
     init(
         browseId: String,
         title: String,
         subtitle: String,
         thumbnailUrl: String? = nil,
-        type: BrowseType
+        type: BrowseType,
+        videoId: String? = nil
     ) {
         self.id = browseId
         self.browseId = browseId
@@ -30,10 +32,26 @@ struct BrowseItem: Identifiable, Codable, Hashable {
         self.subtitle = subtitle
         self.thumbnailUrl = thumbnailUrl
         self.type = type
+        self.videoId = videoId
     }
 
     func artworkAt(px: Int) -> String? {
         thumbnailUrl?.artworkAt(px: px)
+    }
+
+    static let cardArtPx: Int = 280
+
+    var asSong: Song? {
+        guard let videoId = videoId else { return nil }
+        return Song(
+            videoId: videoId,
+            title: title,
+            artist: subtitle,
+            album: nil,
+            duration: nil,
+            artworkUrl: thumbnailUrl,
+            queueTier: .context
+        )
     }
 }
 
@@ -49,6 +67,42 @@ enum SearchResult: Identifiable, Codable {
             return song.id
         case .browse(let item):
             return item.id
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .topTrack(let song), .track(let song):
+            return song.title
+        case .browse(let item):
+            return item.title
+        }
+    }
+
+    var subtitle: String? {
+        switch self {
+        case .topTrack(let song), .track(let song):
+            return song.artist
+        case .browse(let item):
+            return item.subtitle.isEmpty ? nil : item.subtitle
+        }
+    }
+
+    func artworkAt(px: Int) -> String? {
+        switch self {
+        case .topTrack(let song), .track(let song):
+            return song.artworkAt(px: px)
+        case .browse(let item):
+            return item.artworkAt(px: px)
+        }
+    }
+
+    var asSong: Song? {
+        switch self {
+        case .topTrack(let song), .track(let song):
+            return song
+        case .browse(let item):
+            return item.asSong
         }
     }
 }

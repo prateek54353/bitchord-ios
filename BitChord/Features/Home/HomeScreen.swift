@@ -5,6 +5,7 @@ struct HomeScreen: View {
     @EnvironmentObject var playbackManager: PlaybackManager
     @EnvironmentObject var libraryManager: LibraryManager
     @EnvironmentObject var settingsManager: SettingsManager
+    @EnvironmentObject var authManager: AuthManager
     @ObservedObject private var repository = YTMusicRepository.shared
     @State private var showingSettings = false
 
@@ -183,4 +184,6 @@ struct SongCard: View {
         .environmentObject(AppState())
         .environmentObject(PlaybackManager())
         .environmentObject(LibraryManager())
+        .environmentObject(SettingsManager())
+        .environmentObject(AuthManager.shared)
 }

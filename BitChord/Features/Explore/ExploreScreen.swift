@@ -6,6 +6,7 @@ struct ExploreScreen: View {
     @State private var showingBrowsePage = false
     @State private var showingSettings = false
     @EnvironmentObject var settingsManager: SettingsManager
+    @EnvironmentObject var authManager: AuthManager
 
     var body: some View {
         NavigationView {

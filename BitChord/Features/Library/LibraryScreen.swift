@@ -3,6 +3,7 @@ import SwiftUI
 struct LibraryScreen: View {
     @EnvironmentObject var libraryManager: LibraryManager
     @EnvironmentObject var settingsManager: SettingsManager
+    @EnvironmentObject var authManager: AuthManager
     @State private var selectedTab: LibraryTab = .tracks
     @State private var showingSettings = false
 

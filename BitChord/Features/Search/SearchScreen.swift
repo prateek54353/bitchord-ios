@@ -7,6 +7,7 @@ struct SearchScreen: View {
     @ObservedObject private var repository = YTMusicRepository.shared
     @EnvironmentObject var playbackManager: PlaybackManager
     @EnvironmentObject var settingsManager: SettingsManager
+    @EnvironmentObject var authManager: AuthManager
 
     var body: some View {
         NavigationView {

@@ -6,6 +6,7 @@ struct BitChordApp: App {
     @StateObject private var playbackManager = PlaybackManager()
     @StateObject private var libraryManager = LibraryManager()
     @StateObject private var settingsManager = SettingsManager()
+    @StateObject private var authManager = AuthManager.shared
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,7 @@ struct BitChordApp: App {
                 .environmentObject(playbackManager)
                 .environmentObject(libraryManager)
                 .environmentObject(settingsManager)
+                .environmentObject(authManager)
                 .onAppear {
                     setupApp()
                 }

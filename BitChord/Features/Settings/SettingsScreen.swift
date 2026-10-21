@@ -179,7 +179,7 @@ struct SettingsScreen: View {
             if authManager.isAuthenticated {
                 HStack {
                     VStack(alignment: .leading) {
-                        Text(authManager.currentAccount?.name ?? "")
+                        Text(authManager.currentAccount?.name ?? "User")
                             .font(.headline)
                         Text(authManager.currentAccount?.email ?? "")
                             .font(.caption)
@@ -195,7 +195,11 @@ struct SettingsScreen: View {
             } else {
                 Button("Sign In") {
                     Task {
-                        try? await authManager.signIn()
+                        do {
+                            try await authManager.signIn()
+                        } catch {
+                            print("Sign in error: \(error)")
+                        }
                     }
                 }
             }

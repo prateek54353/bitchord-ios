@@ -8,7 +8,7 @@ class YTMusicRepository: ObservableObject {
     static let shared = YTMusicRepository()
 
     // Published properties for UI binding
-    @Published var homeFeed: HomeFeed = HomeFeed(shelves: [])
+    @Published var homeFeed: HomeFeed = HomeFeed(shelves: [], continuation: nil)
     @Published var searchResults: UiState<[SearchResult]> = .loaded([])
 
     private let innerTubeClient: InnerTubeClient
@@ -44,7 +44,7 @@ class YTMusicRepository: ObservableObject {
 
     /// Load home feed and update published property
     func loadHomeFeed() async throws {
-        self.homeFeed = try await home()
+        homeFeed = try await home()
     }
 
     /// Recently played is rendered independently, at the top of the Play page
@@ -291,12 +291,12 @@ class YTMusicRepository: ObservableObject {
 
     /// Load search results and update published property
     func loadSearch(query: String, filter: SearchFilter) async {
-        self.searchResults = .loading
+        searchResults = .loading
         do {
             let results = try await search(query: query, filter: filter)
-            self.searchResults = .loaded(results)
+            searchResults = .loaded(results)
         } catch {
-            self.searchResults = .error(error.localizedDescription)
+            searchResults = .error(error.localizedDescription)
         }
     }
 
@@ -329,12 +329,6 @@ class YTMusicRepository: ObservableObject {
         let songs = InnertubeParser.collectSongsDeep(from: response)
         let continuation = InnertubeParser.extractSectionListContinuation(from: response)
         return (songs, continuation)
-    }
-
-    /// Load browse page (for explore)
-    func loadBrowsePage(browseId: String) async throws -> [BrowseItem] {
-        let response = try await innerTubeClient.sendRequest(endpoint: "browse", body: ["browseId": browseId])
-        return InnertubeParser.parseBrowsePage(from: response)
     }
 
     /// Browse continuation for pagination

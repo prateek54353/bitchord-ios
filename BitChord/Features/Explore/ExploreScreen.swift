@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ExploreScreen: View {
-    @StateObject private var repository = YTMusicRepository.shared
+    @ObservedObject private var repository = YTMusicRepository.shared
     @State private var selectedItem: BrowseItem?
     @State private var showingBrowsePage = false
 
@@ -129,7 +129,6 @@ struct BrowsePageView: View {
 
     private func loadContent() async {
         loading = true
-        // TODO: Implement browse page loading
         shelves = []
         loading = false
     }

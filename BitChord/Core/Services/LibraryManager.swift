@@ -17,10 +17,10 @@ class LibraryManager: ObservableObject {
 
     init(
         localStorage: LocalStorageService = LocalStorageService(),
-        ytMusicRepository: YTMusicRepository = .shared
+        ytMusicRepository: YTMusicRepository? = nil
     ) {
         self.localStorage = localStorage
-        self.ytMusicRepository = ytMusicRepository
+        self.ytMusicRepository = ytMusicRepository ?? YTMusicRepository.shared
         loadLibrary()
     }
 

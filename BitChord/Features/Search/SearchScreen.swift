@@ -3,7 +3,7 @@ import SwiftUI
 struct SearchScreen: View {
     @State private var searchText = ""
     @State private var selectedFilter: SearchFilter = .all
-    @StateObject private var repository = YTMusicRepository.shared
+    @ObservedObject private var repository = YTMusicRepository.shared
     @EnvironmentObject var playbackManager: PlaybackManager
 
     var body: some View {
@@ -60,7 +60,7 @@ struct SearchScreen: View {
                     if searchText.isEmpty {
                         SearchHistoryView()
                     } else {
-                        SearchResultsView(results: repository.$searchResults)
+                        SearchResultsView(results: $repository.searchResults)
                     }
                 }
             }

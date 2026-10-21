@@ -4,7 +4,7 @@ struct HomeScreen: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var playbackManager: PlaybackManager
     @EnvironmentObject var libraryManager: LibraryManager
-    @StateObject private var repository = YTMusicRepository.shared
+    @ObservedObject private var repository = YTMusicRepository.shared
 
     var body: some View {
         NavigationView {
@@ -35,7 +35,7 @@ struct HomeScreen: View {
                     }
 
                     // Home feed from YouTube Music
-                    HomeFeedView(feed: repository.$homeFeed)
+                    HomeFeedView(feed: $repository.homeFeed)
                 }
                 .padding(.vertical)
             }

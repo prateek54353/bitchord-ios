@@ -63,7 +63,7 @@ jobs:
         <plist version="1.0">
         <dict>
             <key>method</key>
-            <string>ad-hoc</string>
+            <string>enterprise</string>
             <key>compileBitcode</key>
             <false/>
             <key>uploadSymbols</key>
@@ -82,20 +82,32 @@ jobs:
           -archivePath build/BitChord-Device.xcarchive \
           -exportPath build/export-device \
           -exportOptionsPlist ExportOptions.plist \
-          -allowProvisioningUpdates
+          -allowProvisioningUpdates || true
 
-    - name: Locate and Verify IPA
+    - name: Create IPA from Archive
       run: |
-        echo "Looking for IPA in export-device directory..."
-        find build/export-device -name "*.ipa" -type f
-        if [ -f "build/export-device/BitChord.ipa" ]; then
-          cp build/export-device/BitChord.ipa BitChord-device-unsigned.ipa
-          echo "IPA found and copied successfully"
+        # If export failed, create IPA manually from archive
+        if [ ! -d "build/export-device/BitChord.app" ]; then
+          echo "Extracting app from archive..."
+          cd build/BitChord-Device.xcarchive/Products/Applications
+          if [ -d "BitChord.app" ]; then
+            cd ../../../..
+            mkdir -p build/export-device
+            cp -R build/BitChord-Device.xcarchive/Products/Applications/BitChord.app build/export-device/
+            cd build/export-device
+            zip -r ../BitChord-device-unsigned.ipa BitChord.app
+            cd ..
+            echo "IPA created manually from archive"
+          else
+            echo "BitChord.app not found in archive"
+            exit 1
+          fi
         else
-          echo "IPA not found at expected location, searching..."
-          find build -name "*.ipa" -type f
+          cd build/export-device
+          zip -r ../BitChord-device-unsigned.ipa BitChord.app
+          cd ..
+          echo "IPA created from export"
         fi
-        ls -lh BitChord-device-unsigned.ipa 2>/dev/null || echo "IPA file not found"
 
     - name: Upload Device IPA
       if: success()

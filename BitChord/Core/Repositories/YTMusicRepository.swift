@@ -1,13 +1,10 @@
 // Core/Repositories/YTMusicRepository.swift
 import Foundation
 
-@MainActor
-class YTMusicRepository: ObservableObject {
-    static let shared = YTMusicRepository()
-    
-    private let innerTubeClient: InnerTubeClient
+class YTMusicRepository {
+    private let innerTubeClient: InnerTubeClient.InnerTubeClient
 
-    init(innerTubeClient: InnerTubeClient = InnerTubeClient()) {
+    init(innerTubeClient: InnerTubeClient.InnerTubeClient = InnerTubeClient.InnerTubeClient()) {
         self.innerTubeClient = innerTubeClient
     }
     

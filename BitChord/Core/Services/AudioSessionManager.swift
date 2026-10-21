@@ -17,8 +17,8 @@ class AudioSessionManager {
                 mode: .default,
                 options: [
                     .allowAirPlay,
-                    .allowBluetooth,
                     .allowBluetoothA2DP,
+                    .allowBluetoothHFP,
                     .mixWithOthers
                 ]
             )

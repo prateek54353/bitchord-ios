@@ -158,8 +158,11 @@ class MusixmatchProvider: LyricsProviderProtocol {
         }
 
         // Search for track
-        let searchQuery = "\(song.artist) \(song.title)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let searchURL = URL(string: "\(baseURL)/matcher.track.get?format=json&q_track=\(song.title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&q_artist=\(song.artist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&apikey=\(apiKey)")!
+        let encodedTitle = song.title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedArtist = song.artist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        guard let searchURL = URL(string: "\(baseURL)/matcher.track.get?format=json&q_track=\(encodedTitle)&q_artist=\(encodedArtist)&apikey=\(apiKey)") else {
+            throw LyricsError.invalidResponse
+        }
 
         let data = try await httpClient.get(url: searchURL)
 

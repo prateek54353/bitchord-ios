@@ -113,7 +113,7 @@ class YTMusicRepository {
 
         // 2. All shelves on Home (excluding recent/history)
         let candidateShelves = shelves.count > 1
-            ? shelves.drop(1).filter { shelf in !isHistoryShelf(shelf) }
+            ? Array(shelves.drop(1)).filter { shelf in !isHistoryShelf(shelf) }
             : shelves
 
         let homeShelfSongs = candidateShelves.flatMap { shelf in
@@ -243,11 +243,14 @@ class YTMusicRepository {
 
     /// Fetches only the first search page
     func searchPage(query: String, filter: SearchFilter, anonymous: Bool = true) async throws -> SearchPage {
-        let response = try await innerTubeClient.sendRequest(endpoint: "search", body: [
+        var body: [String: Any] = [
             "query": query,
-            "params": filter.params,
             "input": query
-        ])
+        ]
+        if let params = filter.params {
+            body["params"] = params
+        }
+        let response = try await innerTubeClient.sendRequest(endpoint: "search", body: body)
         let page = InnertubeParser.parseSearchPage(from: response, includeVideos: filter == .videos)
         return SearchPage(
             rows: page.rows.deduplicated(by: { $0.identityKey() }),
@@ -285,8 +288,7 @@ class YTMusicRepository {
     /// Live media results for the typeahead phase
     func searchTypeahead(input: String) async throws -> SearchPage {
         let response = try await innerTubeClient.sendRequest(endpoint: "search", body: [
-            "query": input,
-            "params": nil
+            "query": input
         ])
         let page = InnertubeParser.parseSearchPage(from: response, includeVideos: false)
         return SearchPage(
@@ -453,6 +455,11 @@ extension Array {
     func deduplicated<T: Hashable>(by keyPath: KeyPath<Element, T>) -> [Element] {
         var seen = Set<T>()
         return filter { seen.insert($0[keyPath: keyPath]).inserted }
+    }
+
+    func deduplicated<T: Hashable>(by keyFn: (Element) -> T) -> [Element] {
+        var seen = Set<T>()
+        return filter { seen.insert(keyFn($0)).inserted }
     }
 }
 

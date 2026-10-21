@@ -4,7 +4,9 @@ struct HomeScreen: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var playbackManager: PlaybackManager
     @EnvironmentObject var libraryManager: LibraryManager
+    @EnvironmentObject var settingsManager: SettingsManager
     @ObservedObject private var repository = YTMusicRepository.shared
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationView {
@@ -42,6 +44,19 @@ struct HomeScreen: View {
             .background(BitChordTheme.background)
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gearshape")
+                            .foregroundColor(BitChordTheme.text)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsScreen()
+            }
             .task {
                 try? await repository.loadHomeFeed()
             }

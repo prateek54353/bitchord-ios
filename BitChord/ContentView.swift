@@ -34,16 +34,6 @@ struct ContentView: View {
                     .tag(AppTab.search)
             }
             .accentColor(BitChordTheme.primary)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        appState.showingSettings = true
-                    }) {
-                        Image(systemName: "gearshape")
-                            .foregroundColor(BitChordTheme.text)
-                    }
-                }
-            }
             .sheet(isPresented: $appState.showingSettings) {
                 SettingsScreen()
             }

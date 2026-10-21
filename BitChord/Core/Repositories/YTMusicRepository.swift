@@ -285,7 +285,7 @@ class YTMusicRepository: ObservableObject {
 
     /// Search for results (first page only)
     func search(query: String, filter: SearchFilter) async throws -> [SearchResult] {
-        let page = try await searchPage(query: query, filter: filter)
+        let page = try await searchPage(query: query, filter: filter, anonymous: true)
         return page.rows
     }
 

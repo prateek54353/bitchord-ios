@@ -2,7 +2,9 @@ import SwiftUI
 
 struct LibraryScreen: View {
     @EnvironmentObject var libraryManager: LibraryManager
+    @EnvironmentObject var settingsManager: SettingsManager
     @State private var selectedTab: LibraryTab = .tracks
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationView {
@@ -96,6 +98,19 @@ struct LibraryScreen: View {
             .background(BitChordTheme.background)
             .navigationTitle("Library")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gearshape")
+                            .foregroundColor(BitChordTheme.text)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsScreen()
+            }
         }
     }
 }

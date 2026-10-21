@@ -4,6 +4,8 @@ struct ExploreScreen: View {
     @ObservedObject private var repository = YTMusicRepository.shared
     @State private var selectedItem: BrowseItem?
     @State private var showingBrowsePage = false
+    @State private var showingSettings = false
+    @EnvironmentObject var settingsManager: SettingsManager
 
     var body: some View {
         NavigationView {
@@ -40,10 +42,23 @@ struct ExploreScreen: View {
             .background(BitChordTheme.background)
             .navigationTitle("Explore")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gearshape")
+                            .foregroundColor(BitChordTheme.text)
+                    }
+                }
+            }
             .sheet(isPresented: $showingBrowsePage) {
                 if let item = selectedItem {
                     BrowsePageView(item: item)
                 }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsScreen()
             }
         }
     }

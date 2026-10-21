@@ -3,8 +3,10 @@ import SwiftUI
 struct SearchScreen: View {
     @State private var searchText = ""
     @State private var selectedFilter: SearchFilter = .all
+    @State private var showingSettings = false
     @ObservedObject private var repository = YTMusicRepository.shared
     @EnvironmentObject var playbackManager: PlaybackManager
+    @EnvironmentObject var settingsManager: SettingsManager
 
     var body: some View {
         NavigationView {
@@ -67,6 +69,19 @@ struct SearchScreen: View {
             .background(BitChordTheme.background)
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gearshape")
+                            .foregroundColor(BitChordTheme.text)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsScreen()
+            }
         }
     }
 

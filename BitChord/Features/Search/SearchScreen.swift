@@ -60,7 +60,7 @@ struct SearchScreen: View {
                     if searchText.isEmpty {
                         SearchHistoryView()
                     } else {
-                        SearchResultsView(results: repository.searchResults)
+                        SearchResultsView(results: repository.$searchResults)
                     }
                 }
             }
@@ -73,7 +73,7 @@ struct SearchScreen: View {
     private func performSearch() {
         guard !searchText.isEmpty else { return }
         Task {
-            await repository.search(query: searchText, filter: selectedFilter)
+            await repository.loadSearch(query: searchText, filter: selectedFilter)
         }
     }
 }
@@ -173,7 +173,7 @@ struct BrowseCategoryCard: View {
 }
 
 struct SearchResultsView: View {
-    let results: UiState<[SearchResult]>
+    @Binding var results: UiState<[SearchResult]>
     @EnvironmentObject var playbackManager: PlaybackManager
 
     var body: some View {

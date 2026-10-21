@@ -129,19 +129,8 @@ struct BrowsePageView: View {
 
     private func loadContent() async {
         loading = true
-        do {
-            let shelfItems = try await YTMusicRepository.shared.loadBrowsePage(browseId: item.browseId)
-            // Convert ShelfItem array to HomeShelf
-            shelves = [
-                HomeShelf(
-                    title: item.title,
-                    items: shelfItems,
-                    subtitle: item.subtitle
-                )
-            ]
-        } catch {
-            print("Error: \(error)")
-        }
+        // TODO: Implement browse page loading
+        shelves = []
         loading = false
     }
 }

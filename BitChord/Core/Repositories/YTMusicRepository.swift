@@ -7,6 +7,10 @@ import Foundation
 class YTMusicRepository: ObservableObject {
     static let shared = YTMusicRepository()
 
+    // Published properties for UI binding
+    @Published var homeFeed: HomeFeed = HomeFeed(shelves: [])
+    @Published var searchResults: UiState<[SearchResult]> = .loaded([])
+
     private let innerTubeClient: InnerTubeClient
 
     // Cache for mood/genre shelves
@@ -36,6 +40,11 @@ class YTMusicRepository: ObservableObject {
     func home() async throws -> HomeFeed {
         let response = try await innerTubeClient.sendRequest(endpoint: "browse", body: ["browseId": "FEmusic_home"])
         return InnertubeParser.parseHomeFeed(from: response)
+    }
+
+    /// Load home feed and update published property
+    func loadHomeFeed() async throws {
+        self.homeFeed = try await home()
     }
 
     /// Recently played is rendered independently, at the top of the Play page
@@ -278,6 +287,17 @@ class YTMusicRepository: ObservableObject {
     func search(query: String, filter: SearchFilter) async throws -> [SearchResult] {
         let page = try await searchPage(query: query, filter: filter)
         return page.rows
+    }
+
+    /// Load search results and update published property
+    func loadSearch(query: String, filter: SearchFilter) async {
+        self.searchResults = .loading
+        do {
+            let results = try await search(query: query, filter: filter)
+            self.searchResults = .loaded(results)
+        } catch {
+            self.searchResults = .error(error.localizedDescription)
+        }
     }
 
     /// Search suggestions for typeahead

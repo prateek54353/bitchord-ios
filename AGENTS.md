@@ -220,13 +220,14 @@ GitHub Actions workflow:
 ## Next Steps
 
 ### Immediate (Testing Required)
-1. Test YouTube Music API integration on device
-2. Test audio playback with real stream URLs
-3. Test authentication flow
-4. Test queue management
-5. Test lyrics fetching and display
-6. Test library operations
-7. Test settings persistence
+1. ✅ Build the project successfully
+2. Test YouTube Music API integration on device
+3. Test audio playback with real stream URLs
+4. Test authentication flow
+5. Test queue management
+6. Test lyrics fetching and display
+7. Test library operations
+8. Test settings persistence
 
 ### Medium Priority
 8. Wire up Last.fm scrobbling with PlaybackManager

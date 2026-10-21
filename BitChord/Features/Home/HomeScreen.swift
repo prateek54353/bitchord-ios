@@ -35,7 +35,7 @@ struct HomeScreen: View {
                     }
 
                     // Home feed from YouTube Music
-                    HomeFeedView(feed: repository.homeFeed)
+                    HomeFeedView(feed: repository.$homeFeed)
                 }
                 .padding(.vertical)
             }
@@ -43,56 +43,19 @@ struct HomeScreen: View {
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.large)
             .task {
-                await repository.loadHomeFeed()
+                try? await repository.loadHomeFeed()
             }
         }
     }
 }
 
 struct HomeFeedView: View {
-    let feed: UiState<HomeFeed>
+    @Binding var feed: HomeFeed
 
     var body: some View {
-        switch feed {
-        case .loading:
-            VStack(alignment: .leading, spacing: BitChordTheme.spacingMd) {
-                Text("New Releases")
-                    .font(BitChordTheme.headline)
-                    .foregroundColor(BitChordTheme.text)
-                    .padding(.horizontal)
-
-                HStack {
-                    ProgressView()
-                        .tint(BitChordTheme.primary)
-                    Text("Loading...")
-                        .font(BitChordTheme.body)
-                        .foregroundColor(BitChordTheme.textSecondary)
-                }
-                .padding(.horizontal)
-            }
-
-        case .loaded(let homeFeed):
-            VStack(alignment: .leading, spacing: BitChordTheme.spacingLg) {
-                ForEach(homeFeed.shelves) { shelf in
-                    HomeShelfView(shelf: shelf)
-                }
-            }
-
-        case .error(let message):
-            VStack(alignment: .leading, spacing: BitChordTheme.spacingMd) {
-                Text("New Releases")
-                    .font(BitChordTheme.headline)
-                    .foregroundColor(BitChordTheme.text)
-                    .padding(.horizontal)
-
-                HStack {
-                    Image(systemName: "exclamationmark.triangle")
-                        .foregroundColor(BitChordTheme.error)
-                    Text(message)
-                        .font(BitChordTheme.body)
-                        .foregroundColor(BitChordTheme.textSecondary)
-                }
-                .padding(.horizontal)
+        VStack(alignment: .leading, spacing: BitChordTheme.spacingLg) {
+            ForEach(feed.shelves) { shelf in
+                HomeShelfView(shelf: shelf)
             }
         }
     }

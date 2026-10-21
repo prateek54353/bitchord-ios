@@ -51,6 +51,7 @@ class PlaybackManager: NSObject, ObservableObject {
     ) {
         self.streamResolver = streamResolver
         self.audioSessionManager = audioSessionManager
+        super.init()
         setupAudioSession()
         setupRemoteCommands()
     }

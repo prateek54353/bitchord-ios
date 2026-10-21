@@ -26,12 +26,21 @@ class AuthManager: ObservableObject {
     // MARK: - Authentication
 
     func signIn() async throws {
-        // TODO: Implement OAuth 2.0 flow for Google.
-        // This currently simulates a successful sign-in.
+        // Real sign-in is handled via YouTubeLoginView
+        // This is a fallback for programmatic sign-in
+        throw NSError(domain: "AuthManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Use YouTubeLoginView for sign-in"])
+    }
+
+    /// Save session from WebView login
+    func saveSession(cookie: String, dataSyncId: String?) async {
+        self.cookie = cookie
+        self.sapisid = extractSAPISID(from: cookie)
+        self.dataSyncId = dataSyncId
+        self._isLoggedIn = true
 
         let account = Account(
-            name: "Test User",
-            email: "test@example.com",
+            name: "YouTube Music",
+            email: "",
             thumbnailUrl: nil
         )
 
@@ -39,6 +48,17 @@ class AuthManager: ObservableObject {
         isAuthenticated = true
 
         await saveSession()
+    }
+
+    private func extractSAPISID(from cookie: String) -> String? {
+        let cookies = cookie.split(separator: ";")
+        for entry in cookies {
+            let parts = entry.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+            if parts.count == 2 && (parts[0] == "SAPISID" || parts[0] == "__Secure-3PAPISID") {
+                return String(parts[1])
+            }
+        }
+        return nil
     }
 
     func signOut() async {

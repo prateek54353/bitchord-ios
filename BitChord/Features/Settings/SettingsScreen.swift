@@ -4,6 +4,7 @@ struct SettingsScreen: View {
     @EnvironmentObject var settingsManager: SettingsManager
     @EnvironmentObject var authManager: AuthManager
     @State private var selectedSection: SettingsSection = .playback
+    @State private var showingLogin = false
 
     var body: some View {
         NavigationView {
@@ -179,9 +180,9 @@ struct SettingsScreen: View {
             if authManager.isAuthenticated {
                 HStack {
                     VStack(alignment: .leading) {
-                        Text(authManager.currentAccount?.name ?? "User")
+                        Text(authManager.currentAccount?.name ?? "YouTube Music")
                             .font(.headline)
-                        Text(authManager.currentAccount?.email ?? "")
+                        Text("Signed in")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -193,18 +194,15 @@ struct SettingsScreen: View {
                     }
                 }
             } else {
-                Button("Sign In") {
-                    Task {
-                        do {
-                            try await authManager.signIn()
-                        } catch {
-                            print("Sign in error: \(error)")
-                        }
-                    }
+                Button("Sign In to YouTube Music") {
+                    showingLogin = true
                 }
             }
         } header: {
             Text("Account")
+        }
+        .sheet(isPresented: $showingLogin) {
+            YouTubeLoginView()
         }
     }
 

@@ -148,7 +148,7 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         self.webView = webView
-        
+
         // Check if we're on music.youtube.com
         if let url = webView.url {
             onPageReady(url.absoluteString.hasPrefix("https://music.youtube.com"))
@@ -157,6 +157,21 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         onError(error)
+    }
+
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        // Prevent opening external apps (like YouTube Music app)
+        if let url = navigationAction.request.url {
+            // Allow navigation within the same domain
+            if url.scheme == "http" || url.scheme == "https" {
+                decisionHandler(.allow)
+            } else {
+                // Block external schemes (itms-apps, youtube, etc.)
+                decisionHandler(.cancel)
+            }
+        } else {
+            decisionHandler(.allow)
+        }
     }
 
     func captureSession() {

@@ -31,7 +31,7 @@ struct AnimatedArtworkView: View {
                 startAnimation()
             }
         }
-        .onChange(of: isPlaying) { newValue in
+        .onChange(of: isPlaying) { _, newValue in
             if newValue {
                 startAnimation()
             } else {

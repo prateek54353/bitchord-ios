@@ -355,8 +355,9 @@ class PlaybackManager: NSObject, ObservableObject {
         scrobbleTimer = nil
     }
 
+    @MainActor
     private func checkScrobble() {
-        guard let song = currentSong, isPlaying else { return }
+        guard currentSong != nil, isPlaying else { return }
 
         // Update now playing if not yet done
         if !hasUpdatedNowPlaying {

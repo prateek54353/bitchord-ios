@@ -19,13 +19,13 @@ struct BitChordApp: App {
                 .onAppear {
                     setupApp()
                 }
-                .onChange(of: settingsManager.settings.lastfmApiKey) { _ in
+                .onChange(of: settingsManager.settings.lastfmApiKey) { _, _ in
                     updateLastFmService()
                 }
-                .onChange(of: settingsManager.settings.lastfmSecret) { _ in
+                .onChange(of: settingsManager.settings.lastfmSecret) { _, _ in
                     updateLastFmService()
                 }
-                .onChange(of: settingsManager.settings.lastfmSessionKey) { _ in
+                .onChange(of: settingsManager.settings.lastfmSessionKey) { _, _ in
                     updateLastFmService()
                 }
         }

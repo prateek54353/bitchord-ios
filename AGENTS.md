@@ -188,14 +188,17 @@ BitChord/
 - **SpotifyService**: Service structure exists, needs OAuth and API calls
 - **DiscordService**: Service structure exists, needs RPC implementation
 
-### Advanced Features ⚠️ NOT IMPLEMENTED
-- Canvas artwork system (Apple Music, Spotify, Tidal)
-- Downloads and offline mode
-- Listen Together (party mode)
-- Advanced audio features (crossfade, equalizer)
-- Animated artwork
-- Background audio with full lock screen controls
-- Smart playlists
+### Advanced Features ✅ PARTIALLY IMPLEMENTED
+- ✅ Animated artwork (subtle rotation and scale animations when playing)
+- ✅ Sleep timer (auto-pause after specified time)
+- ✅ Listening stats recorder (tracks play count, duration, top artists/songs)
+- ✅ Playback tracker for YouTube Music recommendations
+- ⚠️ Canvas artwork system (Apple Music, Spotify, Tidal) - NOT IMPLEMENTED
+- ⚠️ Downloads and offline mode - NOT IMPLEMENTED
+- ⚠️ Listen Together (party mode) - NOT IMPLEMENTED
+- ⚠️ Advanced audio features (crossfade, equalizer) - SETTINGS UI EXISTS BUT NOT WIRED
+- ⚠️ Background audio with full lock screen controls - PARTIALLY IMPLEMENTED
+- ⚠️ Smart playlists - NOT IMPLEMENTED
 
 ## Build Instructions
 
@@ -221,9 +224,9 @@ GitHub Actions workflow:
 
 ### Immediate (Testing Required)
 1. ✅ Build the project successfully
-2. Test YouTube Music API integration on device
+2. ✅ Test YouTube Music API integration on device (search working)
 3. Test audio playback with real stream URLs
-4. Test authentication flow
+4. ✅ Test authentication flow (manual cookie entry working)
 5. Test queue management
 6. Test lyrics fetching and display
 7. Test library operations
@@ -251,6 +254,7 @@ GitHub Actions workflow:
 - Some features may require third-party libraries (e.g., for equalizer)
 - iOS sandbox restrictions limit some file system operations
 - Real streaming integration requires handling of rate limits and authentication
+- **Authentication WebView redirect**: The in-app WebView redirects to the official YouTube Music app on iOS. Workaround: Use manual cookie entry by extracting cookies from music.youtube.com in a desktop browser (via Developer Tools) and pasting them into the app's manual entry field.
 
 ## Testing
 

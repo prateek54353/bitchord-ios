@@ -26,14 +26,10 @@ struct NowPlayingSheet: View {
                 Spacer()
 
                 // Artwork
-                AsyncImage(url: URL(string: playbackManager.currentSong?.artworkAt(px: Int(Song.playerArtPx)) ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    Rectangle()
-                        .fill(BitChordTheme.surfaceVariant)
-                }
+                AnimatedArtworkView(
+                    url: URL(string: playbackManager.currentSong?.artworkAt(px: Int(Song.playerArtPx)) ?? ""),
+                    isPlaying: playbackManager.isPlaying
+                )
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, BitChordTheme.spacingXl)
                 .shadow(radius: 20)

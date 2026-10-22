@@ -45,6 +45,26 @@ class PlaybackManager: NSObject, ObservableObject {
     private var playbackRate: Float = 1.0
     private var volume: Float = 1.0
 
+    // Scrobbling state
+    private var lastFmService: LastFMService?
+    private var scrobbleTimer: Timer?
+    private var songStartTime: TimeInterval = 0
+    private var hasScrobbledCurrentSong = false
+    private var hasUpdatedNowPlaying = false
+
+    // Sleep timer
+    private var sleepTimer: Timer?
+    @Published var sleepTimerRemaining: TimeInterval = 0
+
+    // Listening stats
+    private let statsManager = ListeningStatsManager.shared
+
+    // Playback tracker
+    private let playbackTracker = PlaybackTracker.shared
+
+    // Persistence
+    private let localStorage: LocalStorageService
+
     init(
         streamResolver: StreamResolver = .shared,
         audioSessionManager: AudioSessionManager = .shared
@@ -186,6 +206,7 @@ class PlaybackManager: NSObject, ObservableObject {
         isPlaying = false
         playbackState = .paused
         updateNowPlayingInfo()
+        stopScrobbleTimer()
     }
 
     func resume() {
@@ -193,10 +214,12 @@ class PlaybackManager: NSObject, ObservableObject {
         isPlaying = true
         playbackState = .playing
         updateNowPlayingInfo()
+        startScrobbleTimer()
     }
 
     func stop() {
         player?.pause()
+        stopScrobbleTimer()
         player?.seek(to: .zero)
         isPlaying = false
         playbackState = .idle
@@ -278,6 +301,32 @@ class PlaybackManager: NSObject, ObservableObject {
         }
     }
 
+    // MARK: - Sleep Timer
+
+    func setSleepTimer(_ minutes: Int) {
+        sleepTimer?.invalidate()
+        sleepTimerRemaining = TimeInterval(minutes * 60)
+
+        guard minutes > 0 else { return }
+
+        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            self.sleepTimerRemaining -= 1
+
+            if self.sleepTimerRemaining <= 0 {
+                self.sleepTimer?.invalidate()
+                self.sleepTimer = nil
+                self.pause()
+            }
+        }
+    }
+
+    func cancelSleepTimer() {
+        sleepTimer?.invalidate()
+        sleepTimer = nil
+        sleepTimerRemaining = 0
+    }
+
     // MARK: - Queue Access
 
     var queue: [Song] {
@@ -288,11 +337,74 @@ class PlaybackManager: NSObject, ObservableObject {
         get { _queueIndex }
     }
 
+    // MARK: - Scrobbling
+
+    func setLastFmService(_ service: LastFMService?) {
+        lastFmService = service
+    }
+
+    private func startScrobbleTimer() {
+        scrobbleTimer?.invalidate()
+        scrobbleTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            self?.checkScrobble()
+        }
+    }
+
+    private func stopScrobbleTimer() {
+        scrobbleTimer?.invalidate()
+        scrobbleTimer = nil
+    }
+
+    private func checkScrobble() {
+        guard let song = currentSong, isPlaying else { return }
+
+        // Update now playing if not yet done
+        if !hasUpdatedNowPlaying {
+            updateLastFMNowPlaying()
+            hasUpdatedNowPlaying = true
+        }
+
+        // Check if should scrobble (after 50% of song or 30 seconds, whichever comes first)
+        let elapsed = currentTime
+        let scrobbleThreshold = max(duration * 0.5, 30.0)
+
+        if !hasScrobbledCurrentSong && elapsed >= scrobbleThreshold {
+            scrobbleCurrentSong()
+            hasScrobbledCurrentSong = true
+        }
+    }
+
+    private func updateLastFMNowPlaying() {
+        guard let service = lastFmService, let song = currentSong else { return }
+
+        Task {
+            try? await service.updateNowPlaying(track: song, duration: duration > 0 ? duration : nil)
+        }
+    }
+
+    private func scrobbleCurrentSong() {
+        guard let service = lastFmService, let song = currentSong else { return }
+
+        let timestamp = Int(songStartTime)
+        Task {
+            try? await service.scrobble(track: song, timestamp: TimeInterval(timestamp), duration: duration > 0 ? duration : nil)
+        }
+    }
+
+    private func resetScrobbleState() {
+        hasScrobbledCurrentSong = false
+        hasUpdatedNowPlaying = false
+        songStartTime = Date().timeIntervalSince1970
+    }
+
     // MARK: - Private Methods
 
     private func loadAndPlay(_ song: Song) {
         currentSong = song
         playbackState = .loading
+        resetScrobbleState()
+        statsManager.trackSongStart(song)
+        playbackTracker.startPlayback(videoId: song.videoId)
 
         Task {
             do {
@@ -328,6 +440,7 @@ class PlaybackManager: NSObject, ObservableObject {
                     playbackState = .playing
 
                     updateNowPlayingInfo()
+                    startScrobbleTimer()
                 }
             } catch {
                 await MainActor.run {
@@ -396,6 +509,11 @@ class PlaybackManager: NSObject, ObservableObject {
     }
 
     private func handlePlaybackEnd() {
+        // Track stats for the completed song
+        if let song = currentSong {
+            statsManager.trackSongEnd(song, duration: duration)
+        }
+
         switch repeatMode {
         case .one:
             // Replay current track

@@ -33,12 +33,9 @@ final class InnerTubeClient {
         return _isLoggedIn
     }
 
-    /// Set credentials from AuthManager
-    func setCredentials(cookie: String?, sapisid: String?, dataSyncId: String?) {
-        self.cookie = cookie
-        self.sapisid = sapisid
+    /// Set dataSyncId separately (for ytcfg data)
+    func setDataSyncId(_ dataSyncId: String?) {
         self.dataSyncId = dataSyncId
-        self._isLoggedIn = (cookie != nil && sapisid != nil)
     }
 
     init(httpClient: HttpClient = HttpClient(), session: URLSession = .shared) {

@@ -100,11 +100,8 @@ class AuthManager: ObservableObject {
             }
 
             // Update InnerTubeClient with credentials
-            InnerTubeClient.shared.setCredentials(
-                cookie: cookie,
-                sapisid: sapisid,
-                dataSyncId: dataSyncId
-            )
+            InnerTubeClient.shared.setCredentials(cookie: cookie)
+            InnerTubeClient.shared.setDataSyncId(dataSyncId)
         } catch {
             print("Failed to save session: \(error)")
         }
@@ -185,11 +182,8 @@ class AuthManager: ObservableObject {
         }
 
         // Update InnerTubeClient
-        InnerTubeClient.shared.setCredentials(
-            cookie: cookie,
-            sapisid: sapisid,
-            dataSyncId: dataSyncId
-        )
+        InnerTubeClient.shared.setCredentials(cookie: cookie)
+        InnerTubeClient.shared.setDataSyncId(dataSyncId)
     }
 
     private func saveSessionInternal() async {

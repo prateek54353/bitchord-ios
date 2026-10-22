@@ -1,8 +1,7 @@
 import SwiftUI
 import WebKit
 
-/// WebView-based YouTube Music login
-/// Matches the Android implementation in YtMusicLoginScreen.kt
+/// YouTube Music login with manual cookie option
 struct YouTubeLoginView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authManager: AuthManager
@@ -10,28 +9,21 @@ struct YouTubeLoginView: View {
     @State private var onPageReady = false
     @State private var errorMessage = ""
     @State private var coordinator: WebViewCoordinator?
+    @State private var showManualEntry = false
+    @State private var manualCookie = ""
 
     private let musicOrigin = "https://music.youtube.com"
-    private let loginURL = "https://accounts.google.com/ServiceLogin?ltmpl=music&service=youtube&prompt=select_account&continue=https%3A%2F%2Fmusic.youtube.com%2F"
+    // Use desktop-only login to prevent app redirects
+    private let loginURL = "https://accounts.google.com/ServiceLogin?ltmpl=music&service=youtube&passive=true&continue=https%3A%2F%2Fmusic.youtube.com%2F&hl=en"
 
     var body: some View {
         NavigationView {
             ZStack {
-                WebView(
-                    url: URL(string: loginURL)!,
-                    coordinator: $coordinator,
-                    onPageReady: { ready in
-                        onPageReady = ready
-                        isLoading = false
-                    },
-                    onSessionCaptured: { session in
-                        handleSession(session)
-                    },
-                    onError: { error in
-                        errorMessage = error.localizedDescription
-                        isLoading = false
-                    }
-                )
+                if showManualEntry {
+                    manualCookieEntry
+                } else {
+                    webViewLogin
+                }
 
                 if isLoading {
                     ProgressView("Loading login...")
@@ -66,7 +58,7 @@ struct YouTubeLoginView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if onPageReady {
+                    if onPageReady && !showManualEntry {
                         Button("Confirm") {
                             coordinator?.captureSession()
                         }
@@ -76,9 +68,92 @@ struct YouTubeLoginView: View {
         }
     }
 
+    private var webViewLogin: some View {
+        VStack {
+            WebView(
+                url: URL(string: loginURL)!,
+                coordinator: $coordinator,
+                onPageReady: { ready in
+                    onPageReady = ready
+                    isLoading = false
+                },
+                onSessionCaptured: { session in
+                    handleSession(session)
+                },
+                onError: { error in
+                    errorMessage = error.localizedDescription
+                    isLoading = false
+                }
+            )
+
+            Divider()
+
+            Button("Use Manual Cookie Entry") {
+                showManualEntry = true
+            }
+            .padding()
+        }
+    }
+
+    private var manualCookieEntry: some View {
+        VStack(spacing: 20) {
+            Text("Manual Cookie Entry")
+                .font(.headline)
+
+            Text("If automatic login redirects to the YouTube Music app, you can manually enter your cookie.")
+                .multilineTextAlignment(.center)
+                .padding()
+                .foregroundColor(.secondary)
+
+            Text("To get your cookie:")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("1. Open music.youtube.com in Safari")
+                Text("2. Sign in to your account")
+                Text("3. Open Safari settings → Privacy → Manage Website Data")
+                Text("4. Find music.youtube.com and tap it")
+                Text("5. Copy the cookie value")
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+            Text("Paste your cookie below:")
+                .font(.caption)
+
+            TextEditor(text: $manualCookie)
+                .frame(height: 150)
+                .padding(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray, lineWidth: 1)
+                )
+
+            Button("Save Cookie") {
+                saveManualCookie()
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(manualCookie.isEmpty)
+
+            Button("Use WebView Login") {
+                showManualEntry = false
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding()
+    }
+
     private func handleSession(_ session: CapturedSession) {
         Task {
             await authManager.saveSession(cookie: session.cookie, dataSyncId: session.dataSyncId)
+            dismiss()
+        }
+    }
+
+    private func saveManualCookie() {
+        Task {
+            await authManager.saveSession(cookie: manualCookie, dataSyncId: nil)
             dismiss()
         }
     }
@@ -96,17 +171,19 @@ struct WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = WKWebsiteDataStore.default()
-        
+
+        // Force desktop user agent to prevent mobile app redirects
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         webView.navigationDelegate = context.coordinator
         webView.scrollView.isScrollEnabled = true
-        
+
         // Clear cookies for fresh login
         clearCookies(webView: webView)
-        
+
         let request = URLRequest(url: url)
         webView.load(request)
-        
+
         return webView
     }
 
@@ -160,17 +237,23 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        // Prevent opening external apps (like YouTube Music app)
-        if let url = navigationAction.request.url {
-            // Allow navigation within the same domain
-            if url.scheme == "http" || url.scheme == "https" {
-                decisionHandler(.allow)
-            } else {
-                // Block external schemes (itms-apps, youtube, etc.)
-                decisionHandler(.cancel)
-            }
-        } else {
+        guard let url = navigationAction.request.url else {
             decisionHandler(.allow)
+            return
+        }
+
+        // Block app deep links and external schemes
+        let blockedSchemes = ["itms-apps", "youtube", "vnd.youtube", "ymusic", "youtube-music"]
+        if blockedSchemes.contains(url.scheme?.lowercased() ?? "") {
+            decisionHandler(.cancel)
+            return
+        }
+
+        // Allow all HTTPS navigation (including app store links but they won't auto-open)
+        if url.scheme == "http" || url.scheme == "https" {
+            decisionHandler(.allow)
+        } else {
+            decisionHandler(.cancel)
         }
     }
 

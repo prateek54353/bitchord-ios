@@ -8,7 +8,7 @@ struct YouTubeLoginView: View {
     @EnvironmentObject var authManager: AuthManager
     @State private var isLoading = true
     @State private var onPageReady = false
-    @State private var errorMessage: String?
+    @State private var errorMessage = ""
     @State private var coordinator: WebViewCoordinator?
 
     private let musicOrigin = "https://music.youtube.com"
@@ -40,7 +40,7 @@ struct YouTubeLoginView: View {
                         .cornerRadius(10)
                 }
 
-                if let errorMessage = errorMessage {
+                if !errorMessage.isEmpty {
                     VStack {
                         Text("Error")
                             .font(.headline)
@@ -125,9 +125,7 @@ struct WebView: UIViewRepresentable {
     private func clearCookies(webView: WKWebView) {
         let dataStore = webView.configuration.websiteDataStore
         dataStore.fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
-            records.forEach { record in
-                dataStore.removeData(ofTypes: [record.recordType], for: [record])
-            }
+            dataStore.removeData(ofType: WKWebsiteDataStore.allWebsiteDataTypes())
         }
     }
 }

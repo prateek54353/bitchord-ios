@@ -58,17 +58,17 @@ class AuthManager: ObservableObject {
     private func saveSessionToKeychain() async {
         do {
             // Save cookie
-            if let cookie = cookie {
+            if let cookie = cookie, let cookieData = cookie.data(using: .utf8) {
                 try keychain.setData(
-                    cookie.data(using: .utf8),
+                    cookieData,
                     forKey: "auth_cookie"
                 )
             }
 
             // Save dataSyncId
-            if let dataSyncId = dataSyncId {
+            if let dataSyncId = dataSyncId, let dataSyncIdData = dataSyncId.data(using: .utf8) {
                 try keychain.setData(
-                    dataSyncId.data(using: .utf8),
+                    dataSyncIdData,
                     forKey: "auth_datasyncid"
                 )
             }

@@ -13,8 +13,8 @@ class PlaybackTracker {
         let playlistId: String?
         let playlistIndex: Int?
         let logTime: Int64
-        let playDuration: Int
-        let playbackRate: Float
+        var playDuration: Int
+        var playbackRate: Float
     }
 
     init(innerTubeClient: InnerTubeClient = .shared) {

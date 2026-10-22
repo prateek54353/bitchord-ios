@@ -10,27 +10,26 @@ class ListeningStatsManager: ObservableObject {
     @Published var topArtists: [ArtistStat] = []
     @Published var topSongs: [SongStat] = []
 
-    private let localStorage: LocalStorageService
+    private let userDefaults = UserDefaults.standard
     private var currentSessionStart: Date?
     private var currentSongStart: Date?
 
     struct ArtistStat: Identifiable, Codable {
-        let id = UUID()
+        var id = UUID()
         let name: String
         var playCount: Int
         var totalDuration: TimeInterval
     }
 
     struct SongStat: Identifiable, Codable {
-        let id = UUID()
+        var id = UUID()
         let title: String
         let artist: String
         var playCount: Int
         var totalDuration: TimeInterval
     }
 
-    init(localStorage: LocalStorageService = LocalStorageService()) {
-        self.localStorage = localStorage
+    init() {
         loadStats()
     }
 
@@ -120,12 +119,12 @@ class ListeningStatsManager: ObservableObject {
         )
 
         if let data = try? JSONEncoder().encode(stats) {
-            localStorage.save(key: "listening_stats", data: data)
+            userDefaults.set(data, forKey: "listening_stats")
         }
     }
 
     private func loadStats() {
-        guard let data = localStorage.load(key: "listening_stats"),
+        guard let data = userDefaults.data(forKey: "listening_stats"),
               let stats = try? JSONDecoder().decode(StatsData.self, from: data) else {
             return
         }

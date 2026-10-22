@@ -310,13 +310,15 @@ class PlaybackManager: NSObject, ObservableObject {
         guard minutes > 0 else { return }
 
         sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            self.sleepTimerRemaining -= 1
+            Task { @MainActor in
+                guard let self = self else { return }
+                self.sleepTimerRemaining -= 1
 
-            if self.sleepTimerRemaining <= 0 {
-                self.sleepTimer?.invalidate()
-                self.sleepTimer = nil
-                self.pause()
+                if self.sleepTimerRemaining <= 0 {
+                    self.sleepTimer?.invalidate()
+                    self.sleepTimer = nil
+                    self.pause()
+                }
             }
         }
     }
@@ -346,7 +348,9 @@ class PlaybackManager: NSObject, ObservableObject {
     private func startScrobbleTimer() {
         scrobbleTimer?.invalidate()
         scrobbleTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.checkScrobble()
+            Task { @MainActor in
+                self?.checkScrobble()
+            }
         }
     }
 
@@ -355,7 +359,6 @@ class PlaybackManager: NSObject, ObservableObject {
         scrobbleTimer = nil
     }
 
-    @MainActor
     private func checkScrobble() {
         guard currentSong != nil, isPlaying else { return }
 

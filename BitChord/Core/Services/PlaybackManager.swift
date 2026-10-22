@@ -62,9 +62,6 @@ class PlaybackManager: NSObject, ObservableObject {
     // Playback tracker
     private let playbackTracker = PlaybackTracker.shared
 
-    // Persistence
-    private let localStorage: LocalStorageService
-
     init(
         streamResolver: StreamResolver = .shared,
         audioSessionManager: AudioSessionManager = .shared

@@ -124,7 +124,9 @@ struct WebView: UIViewRepresentable {
 
     private func clearCookies(webView: WKWebView) {
         let dataStore = webView.configuration.websiteDataStore
-        dataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: Date.distantPast)
+        dataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: Date.distantPast) {
+            // Completion handler
+        }
     }
 }
 
